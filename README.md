@@ -68,11 +68,17 @@ npm run dev
 On `/app`, allow microphone access, press **Talk to it**, and ask
 *"what's a two-bed in Marina going for?"*
 
+What happens on screen as you speak: the listings behind the answer are outlined and scrolled into
+view, what was said appears as captions above the button, and asking about duplicates lifts a
+comparison panel above the table. The captions carry the hedge in amber, so the uncertain voice is
+legible with the sound off. Both the highlight and the panel belong to the question being answered:
+change the subject and they go.
+
 ### Other commands
 
 | | |
 |---|---|
-| `npm test` | The pure functions — 46 tests. No network; runs off a committed fixture. |
+| `npm test` | The pure functions — 59 tests. No network; runs off a committed fixture. |
 | `npm run eval` | Agent conduct, via scripted conversations. No microphone needed. |
 | `npm run check-hero` | Is there currently a duplicate worth demoing? Run before recording. |
 | `npm run fixture` | Recapture the test fixture from live data. |
@@ -133,14 +139,15 @@ key never reaches the browser either.
 
 ### Where the thinking is
 
-Three pure functions carry every judgement the product makes, and they are where the tests are:
+Pure functions carry every judgement the product makes, and they are where the tests are:
 
 | File | Decides |
 |---|---|
 | `lib/listings/normalize.ts` | What a listing *is*, once the strings are gone |
 | `lib/listings/trust.ts` | Whether a listing is complete enough to state plainly |
-| `lib/listings/duplicates.ts` | Whether two listings are the same apartment |
+| `lib/listings/duplicates.ts` | Whether two listings are the same apartment, and whether a comparison still describes what is on screen |
 | `lib/listings/stats.ts` | Which figures the marketing page is entitled to claim |
+| `lib/transcript.ts` | Which part of a spoken answer was said in the uncertain voice |
 
 ```
 raw row (every field a string)

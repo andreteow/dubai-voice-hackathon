@@ -7,12 +7,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Built and shipped.** All six implementation units (U1–U6) are complete: listings on screen, voice
 answering from memory, the uncertain voice, duplicate detection with a comparison panel, agent
 conduct evals, and demo verification. A marketing landing page with email capture was added on top
-of that. 46 tests green, production build passes.
+of that, then U7–U9 (captions rail, rows scrolling into view, panel staleness). 59 tests green,
+production build passes.
 
 `docs/plans/2026-08-08-001-feat-second-opinion-plan.md` records the requirements (R1–R21), key
-technical decisions (KTD1–KTD7), and units — read it for *why* something is the way it is. It is a
-pre-build artifact, so where it and the code disagree, **the code is authoritative**. `README.md`
-and `TECH-SPEC.md` at the root describe what actually shipped.
+technical decisions (KTD1–KTD7), and units — read it for *why* something is the way it is.
+`docs/plans/2026-08-08-002-feat-conversation-recovery-plan.md` continues the numbering (R22–R24,
+KTD8–KTD11) and covers everything that makes a conversation recoverable. Both are pre-build
+artifacts, so where they and the code disagree, **the code is authoritative**. `README.md` and
+`TECH-SPEC.md` at the root describe what actually shipped.
 
 ## The product in one paragraph
 
@@ -69,16 +72,16 @@ context.dev WebDB ──(server-only, on mount + explicit re-read)──> /api/l
                                                                                       │
 ElevenLabs agent ──(client tools: searchListings, findDuplicates)─────────────────────┘
                                                                                       │
-                                                                          listings table + comparison panel
+                                                          listings table + comparison panel + captions
 ```
 
 Consequences that constrain how you write code here:
 
 - The context.dev API key **never reaches the browser** — one server route proxies it (KTD6).
-- All judged logic lives in **pure functions under `lib/listings/`** (`normalize`, `trust`,
-  `duplicates`). No I/O below the route layer. These are the only things with tests (KTD5) — the
-  voice agent and UI have no unit tests; agent *conduct* is covered by `npm run eval`, and
-  delivery is verified by speaking to it.
+- All judged logic lives in **pure functions** — `lib/listings/` (`normalize`, `trust`,
+  `duplicates`, `stats`) plus `lib/transcript.ts`. No I/O below the route layer. These are the only
+  things with tests (KTD5) — the voice agent and UI have no unit tests; agent *conduct* is covered
+  by `npm run eval`, and delivery is verified by speaking to it.
 - **Agent config is committed, not clicked.** Prompt, tool schemas, and voice labels live in
   `agent/second-opinion.json`, applied by a re-runnable script, so behaviour is reviewable as a
   diff (KTD4). This is the primary evidence of deliberate tool steering the rubric scores.
@@ -102,6 +105,10 @@ Consequences that constrain how you write code here:
 - **A missing size normalises to `null`, not `0`** — `0` would corrupt duplicate matching.
 - **The agent says what to check, never what to do.** It does not recommend a listing, judge whether
   a price is good, or attribute motive to any agency (R13). The word "bait" is out of scope.
+- **Nothing on screen may outlive the question that put it there** (R24). The comparison panel and
+  the row highlights belong to the turn that produced them; `groupIsInResults` retires the panel as
+  soon as its listings leave the current result set. A stale panel is worse than an empty one — it
+  reads as an answer to the question just asked.
 
 ## context.dev API facts (probed live — these supersede the docs)
 
@@ -135,6 +142,15 @@ Full results in `docs/ideation/context-dev-probe-results.md`. The load-bearing o
 - The MCP `simulate_conversation` tool returns 500, but the underlying REST endpoint
   `POST /v1/convai/agents/{id}/simulate-conversation` works — that is what `npm run eval` drives.
   Client tools do not execute there (no browser), so evals assert *conduct*, not numeric accuracy.
+- **`onMessage` delivers the `<sure>` / `<unsure>` markup verbatim** — the platform does not strip
+  it before the transcript event. Verified against a stored conversation, not assumed. That is what
+  lets the captions rail colour the hedge. `lib/transcript.ts` still treats untagged text as
+  certain, so this staying true is not load-bearing.
+- **A turn spent calling a tool arrives as a message with no text.** Filter those out before
+  rendering, or you get blank caption lines between every question and its answer.
+- `npm run eval` reads `ELEVENLABS_API_KEY` / `ELEVENLABS_AGENT_ID` from the environment, and `tsx`
+  does not load `.env.local` the way `next dev` does. If it reports the keys are unset:
+  `set -a; . ./.env.local; set +a; npm run eval`.
 
 ## Docs convention
 

@@ -9,9 +9,10 @@ import {
   medianPrice,
   type ListingsFilter,
 } from "@/lib/listings/answer";
-import { groupDuplicates } from "@/lib/listings/duplicates";
+import { groupDuplicates, groupIsInResults } from "@/lib/listings/duplicates";
 import { classifyTrust, trustPhrases } from "@/lib/listings/trust";
 import type { DuplicateGroup, Listing } from "@/lib/listings/types";
+import { parseSegments, type TranscriptEntry } from "@/lib/transcript";
 
 /**
  * The voice surface.
@@ -26,13 +27,21 @@ import type { DuplicateGroup, Listing } from "@/lib/listings/types";
  */
 export function VoiceWidget({
   listings,
+  group,
   onHighlight,
   onShowGroup,
+  onTranscript,
+  onResetTranscript,
 }: {
   listings: Listing[];
+  /** The group currently on screen, so a change of subject can retire it. */
+  group: DuplicateGroup | null;
   onHighlight: (ids: string[]) => void;
   /** Puts a duplicate group on screen as the agent starts talking about it. */
   onShowGroup: (group: DuplicateGroup | null) => void;
+  /** One finished turn, the renter's or the agent's, for the captions rail. */
+  onTranscript: (entry: TranscriptEntry) => void;
+  onResetTranscript: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
@@ -42,8 +51,28 @@ export function VoiceWidget({
   const listingsRef = useRef(listings);
   listingsRef.current = listings;
 
+  // Same reason: the comparison panel changes between turns, and the closure
+  // needs to know what is on screen now, not at connect time.
+  const groupRef = useRef(group);
+  groupRef.current = group;
+
+  const turnRef = useRef(0);
+
   const conversation = useConversation({
     onError: (message: string) => setError(message),
+
+    // Fires once per finished turn, for both speakers. Tentative agent text is
+    // not used: a line that rewrites itself mid-sentence is harder to read than
+    // one that arrives a beat late.
+    onMessage: ({ message, source }: { message: string; source: "user" | "ai" }) => {
+      // A turn spent calling a tool carries no words — those land in the
+      // conversation record as empty agent messages. Nobody said anything, so
+      // nothing goes in the transcript.
+      const segments = parseSegments(message ?? "");
+      if (segments.length === 0) return;
+      onTranscript({ id: ++turnRef.current, source, segments });
+    },
+
     clientTools: {
       // Client tools must return a string or a number, so results are serialised.
       searchListings: (params: ListingsFilter) => {
@@ -51,6 +80,12 @@ export function VoiceWidget({
         const matches = filterListings(all, params ?? {});
 
         onHighlight(matches.slice(0, 40).map((l) => l.id));
+
+        // A comparison panel from an earlier question outlives its subject the
+        // moment the renter asks about somewhere else (R24). It stays only
+        // while the flat it compares is among the results now on screen.
+        const shown = groupRef.current;
+        if (shown && !groupIsInResults(shown, matches)) onShowGroup(null);
 
         if (matches.length === 0) {
           return JSON.stringify({
@@ -131,6 +166,9 @@ export function VoiceWidget({
   const start = useCallback(async () => {
     setError(null);
     setStarting(true);
+    // Cleared when a conversation begins, not when one ends — reading back what
+    // was said after hanging up is the point of having it.
+    onResetTranscript();
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
       const res = await fetch("/api/agent-signed-url");
@@ -147,7 +185,7 @@ export function VoiceWidget({
     } finally {
       setStarting(false);
     }
-  }, [conversation]);
+  }, [conversation, onResetTranscript]);
 
   const stop = useCallback(async () => {
     await conversation.endSession();

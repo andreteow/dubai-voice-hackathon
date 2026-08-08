@@ -34,6 +34,10 @@ Numbers below were true at 12:20. **Replace them with whatever `check-hero` prin
 
 **(screen)** cut to the app at `localhost:3000/app`. Quiet table. Voice button bottom-left.
 
+*(From the first answer onward, captions build above the button and the rows being talked about
+scroll themselves into view. You do not need to narrate either — but it does mean the recording
+still reads if a judge watches it muted, so keep the dock in frame.)*
+
 *(Have `/app` already open in its own tab before you start. The landing page at `/` is worth two
 seconds at the very end if there's time, not here — it costs you the opening beat.)*
 
@@ -134,7 +138,7 @@ with no posting date, or no agency named.
 > still refuses to value prices and still switches voices. It caught the agent quoting numbers out
 > of its own prompt instead of the data."
 
-**(screen)** `npm test` — 46 green.
+**(screen)** `npm test` — 59 green.
 
 ---
 

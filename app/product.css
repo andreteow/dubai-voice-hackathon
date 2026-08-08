@@ -34,6 +34,11 @@
   padding: 28px 24px 120px;
 }
 
+/* Once captions appear the dock is roughly two and a half times taller. */
+.shell.with-transcript {
+  padding-bottom: 320px;
+}
+
 .masthead {
   display: flex;
   align-items: baseline;
@@ -173,6 +178,15 @@ table.listings tbody tr.highlight {
   border-radius: 10px;
 }
 
+/*
+ * The table gives up the height the captions take, rather than letting its last
+ * rows disappear behind them — U8 scrolls rows into this box, so the box has to
+ * be somewhere the renter can actually see.
+ */
+.with-transcript .scroll {
+  max-height: min(60vh, calc(100vh - 500px));
+}
+
 .error {
   padding: 14px 18px;
   border: 1px solid #6b2b2b;
@@ -181,13 +195,56 @@ table.listings tbody tr.highlight {
   margin-bottom: 20px;
 }
 
-.voice {
+/*
+ * The dock: captions and the Talk button as one fixed unit, so the rail cannot
+ * drift away from the bar if either grows.
+ */
+.dock {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+}
+
+.transcript {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 14px 24px 0;
+  max-height: min(30vh, 220px);
+  overflow-y: auto;
+  font-size: 13.5px;
+}
+
+.transcript .line {
+  display: grid;
+  /* Wide enough that "Second Opinion" sits on one line at this letter-spacing. */
+  grid-template-columns: 136px 1fr;
+  gap: 12px;
+  margin: 0 0 7px;
+}
+
+.transcript .who {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding-top: 3px;
+}
+
+/* The renter's own words sit back; the agent's answer is the thing being read. */
+.transcript .line.user .said {
+  color: var(--muted);
+}
+
+/* The uncertain voice, in the amber that already means thin data on the rows above. */
+.transcript .hedge {
+  color: var(--warn);
+}
+
+.voice {
   padding: 16px 24px;
-  background: linear-gradient(to top, var(--bg) 70%, transparent);
 }
 
 .voice-row {
@@ -330,4 +387,9 @@ button.talk:disabled {
 @media (max-width: 640px) {
   .dupe-head { flex-direction: column; }
   .dupe-spread { text-align: left; }
+
+  /* On a phone the speaker label costs more width than it earns. */
+  .transcript { max-height: 26vh; }
+  .transcript .line { grid-template-columns: 1fr; gap: 1px; }
+  .shell.with-transcript { padding-bottom: 280px; }
 }

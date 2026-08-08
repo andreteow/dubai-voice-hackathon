@@ -5,8 +5,10 @@ import { useCallback, useEffect, useState } from "react";
 
 import { DuplicateComparison } from "@/components/DuplicateComparison";
 import { ListingsTable } from "@/components/ListingsTable";
+import { Transcript } from "@/components/Transcript";
 import { VoiceWidget } from "@/components/VoiceWidget";
 import type { DuplicateGroup, ListingsPayload } from "@/lib/listings/types";
+import type { TranscriptEntry } from "@/lib/transcript";
 
 /**
  * The single screen.
@@ -20,6 +22,15 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [highlightIds, setHighlightIds] = useState<string[]>([]);
   const [group, setGroup] = useState<DuplicateGroup | null>(null);
+  const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
+
+  // Stable across renders, so the conversation SDK cannot end up holding the
+  // version of these that existed when the socket opened.
+  const appendTranscript = useCallback(
+    (entry: TranscriptEntry) => setTranscript((prev) => [...prev, entry]),
+    [],
+  );
+  const resetTranscript = useCallback(() => setTranscript([]), []);
 
   const read = useCallback(async () => {
     setLoading(true);
@@ -49,7 +60,7 @@ export default function Home() {
     : "—";
 
   return (
-    <main className="shell">
+    <main className={transcript.length > 0 ? "shell with-transcript" : "shell"}>
       <Link href="/" className="backlink">
         ← Back to Second Opinion
       </Link>
@@ -95,11 +106,19 @@ export default function Home() {
 
       <ListingsTable listings={listings} highlightIds={highlightIds} />
 
-      <VoiceWidget
-        listings={listings}
-        onHighlight={setHighlightIds}
-        onShowGroup={setGroup}
-      />
+      {/* One fixed element, so the captions cannot drift out of alignment with
+          the button row if either changes height. */}
+      <div className="dock">
+        <Transcript entries={transcript} />
+        <VoiceWidget
+          listings={listings}
+          group={group}
+          onHighlight={setHighlightIds}
+          onShowGroup={setGroup}
+          onTranscript={appendTranscript}
+          onResetTranscript={resetTranscript}
+        />
+      </div>
     </main>
   );
 }

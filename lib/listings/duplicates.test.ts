@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   classifySpread,
   groupDuplicates,
+  groupIsInResults,
   PROBABLE_MATCH_TOLERANCE_SQFT,
 } from "./duplicates";
 import fixture from "./fixtures/listings.sample.json";
@@ -137,6 +138,33 @@ describe("classifySpread", () => {
 
   it("treats a large gap as worth a renter's attention", () => {
     expect(classifySpread(24000)).toBe("material");
+  });
+});
+
+describe("groupIsInResults", () => {
+  const cheap = listing({ priceAed: 76000 });
+  const dear = listing({ priceAed: 100000, agency: "Agency Two" });
+  const [group] = groupDuplicates([cheap, dear]);
+
+  it("keeps a group whose listings are all still on screen", () => {
+    expect(groupIsInResults(group, [cheap, dear, listing({ building: "Other" })])).toBe(
+      true,
+    );
+  });
+
+  it("drops a group when one of its listings has been filtered out", () => {
+    // What a tighter price ceiling does: the comparison the panel is making no
+    // longer describes anything the renter can see.
+    expect(groupIsInResults(group, [cheap])).toBe(false);
+  });
+
+  it("drops a group against an empty result set", () => {
+    expect(groupIsInResults(group, [])).toBe(false);
+  });
+
+  it("matches on id, not on the visible fields", () => {
+    const lookalikes = group.listings.map((l) => ({ ...l, id: `copy-${l.id}` }));
+    expect(groupIsInResults(group, lookalikes)).toBe(false);
   });
 });
 

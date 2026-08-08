@@ -139,3 +139,25 @@ export function groupDuplicates(listings: Listing[]): DuplicateGroup[] {
   // Widest gap first — that is the one worth a renter's attention.
   return groups.sort((a, b) => b.spreadAed - a.spreadAed);
 }
+
+/**
+ * Is this group still part of what the renter is looking at?
+ *
+ * The comparison panel stays on screen until something replaces it, so after a
+ * change of subject it can keep showing an apartment from two questions ago
+ * (plan R24). This is the test for that: the panel earns its place only while
+ * the listings it compares are among the current results.
+ *
+ * Every member must survive, not merely one. The panel's whole claim is "this
+ * flat is advertised at these two prices" — if a price ceiling has excluded the
+ * dearer of the pair, that claim no longer describes anything on screen.
+ */
+export function groupIsInResults(
+  group: DuplicateGroup,
+  results: Listing[],
+): boolean {
+  // By id, not by value: two listings can agree on every visible field and
+  // still be the two separate adverts that make the group interesting.
+  const present = new Set(results.map((l) => l.id));
+  return group.listings.every((l) => present.has(l.id));
+}

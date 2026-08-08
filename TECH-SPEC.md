@@ -65,7 +65,7 @@ flowchart TD
         MEM[(172 rentals in React state)]
         CT{{"client tools:<br/>searchListings · findDuplicates"}}
         EL[ElevenLabs agent<br/>2 voices, 1 socket]
-        UI[listings table + comparison panel]
+        UI[listings table + comparison panel + captions]
     end
     subgraph Server
         API["/api/listings — holds the key"]
@@ -171,6 +171,12 @@ Deliberate on all three counts. A transfer costs a round trip and a fresh socket
 silent, which is a demo-killer. Prosody markup on one voice risks being inaudible through laptop
 speakers on a compressed video, which is the actual delivery channel. Two labelled voices on one
 socket cost one config field, add no latency, and produce a change the listener cannot miss.
+
+That markup survives to the browser verbatim in the transcript event, which turned out to be worth
+more than the voice switch alone: the captions rail parses it back out (`lib/transcript.ts`) and
+renders the hedged clause in the amber already used for incomplete rows. The distinction is then
+legible as well as audible — which matters, because the delivery channel is a recording that a
+judge may watch with the sound off.
 
 **Used:** Agents Platform with two `supported_voices` (Sarah for the confident register, Will for
 the uncertain one — different speakers, so the switch survives compression), two client tools,
