@@ -384,9 +384,352 @@ button.talk:disabled {
   font-size: 12.5px;
 }
 
+/*
+ * The listing sheet.
+ *
+ * A modal rather than another band on the page: it is opened for one listing at
+ * a time, by a click or by the agent, and the table behind it has to stay put
+ * so that closing it returns the renter exactly where they were.
+ */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(6, 8, 12, 0.72);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 4vh 20px;
+  overflow-y: auto;
+}
+
+.sheet {
+  width: min(880px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 22px 24px 18px;
+  margin-bottom: 4vh;
+}
+
+.sheet-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.sheet-eyebrow {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+}
+
+.sheet-head h2 {
+  margin: 5px 0 3px;
+  font-size: 23px;
+  letter-spacing: -0.015em;
+}
+
+.sheet-attrs {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13.5px;
+}
+
+.sheet-price-block {
+  margin-left: auto;
+  text-align: right;
+}
+
+.sheet-price {
+  display: block;
+  font-size: 25px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.sheet-price-note {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+button.sheet-close {
+  background: var(--panel-2);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  flex: none;
+}
+
+button.sheet-close:hover,
+button.sheet-close:focus-visible {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.sheet-warn {
+  margin: 14px 0 0;
+  padding: 10px 13px;
+  border: 1px solid var(--warn);
+  background: var(--warn-dim);
+  border-radius: 8px;
+  color: var(--warn);
+  font-size: 13px;
+}
+
+.sheet-band {
+  margin-top: 20px;
+}
+
+.sheet-band h3 {
+  margin: 0 0 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* The same flat at another price is the finding, so it gets the accent the
+   duplicate panel already uses for exactly that claim. */
+.sheet-band.same h3 {
+  color: var(--accent);
+}
+
+.sheet-band.same {
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.sheet-rank {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.sheet-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.sheet-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 92px auto;
+  align-items: baseline;
+  gap: 12px;
+  padding: 9px 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.sheet-row-price {
+  font-variant-numeric: tabular-nums;
+  font-size: 15px;
+}
+
+.sheet-row-who {
+  color: var(--text);
+}
+
+.sheet-row-meta {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.sheet-delta {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  font-size: 13px;
+}
+
+.sheet-delta.cheaper {
+  color: var(--good);
+}
+
+.sheet-delta.dearer {
+  color: var(--muted);
+}
+
+.sheet-band-note {
+  margin: 11px 0 0;
+  font-size: 13px;
+  color: var(--good);
+}
+
+/* A gap below the material threshold is stated, not celebrated. */
+.sheet-band-note.ordinary {
+  color: var(--muted);
+}
+
+.sheet-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.sheet-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.sheet-shot {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 8px;
+  background: var(--panel-2);
+  display: block;
+}
+
+/* The gallery is the one part that waits on the network, so it says so rather
+   than letting the panel reflow under the renter a second after it opens. */
+.sheet-shot.skeleton {
+  animation: sheet-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes sheet-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.7; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-shot.skeleton { animation: none; }
+}
+
+.sheet-photo-note {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.sheet-headline {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.sheet-description {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--muted);
+  white-space: pre-wrap;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.sheet-amenities {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.sheet-amenities li {
+  font-size: 12px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 11px;
+}
+
+.sheet-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* A row you can open. The whole row is the target, so the cursor has to say so. */
+table.listings tbody tr.openable {
+  cursor: pointer;
+}
+
+table.listings tbody tr.openable:hover {
+  background: var(--panel-2);
+}
+
+table.listings tbody tr.untrusted.openable:hover {
+  background: #46381f;
+}
+
+table.listings tbody tr.opened {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Looks like the text it replaced — it is the keyboard's way into the row, not
+   a second thing to notice. */
+button.rowopen {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.rowopen:hover,
+tr.opened button.rowopen {
+  color: var(--accent);
+}
+
+/* Pause sits next to End, quieter than it: ending is the rarer intent and the
+   destructive one, but pausing is not the button someone hunts for either. */
+button.pause {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 11px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button.pause:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+button.talk.paused {
+  background: var(--warn);
+}
+
+.voice-state.is-paused {
+  color: var(--warn);
+}
+
 @media (max-width: 640px) {
   .dupe-head { flex-direction: column; }
   .dupe-spread { text-align: left; }
+
+  .sheet { padding: 18px 16px 14px; }
+  .sheet-price-block { margin-left: 0; text-align: left; }
+  .sheet-row { grid-template-columns: 1fr auto; }
+  .sheet-row-who { grid-column: 1 / -1; }
 
   /* On a phone the speaker label costs more width than it earns. */
   .transcript { max-height: 26vh; }

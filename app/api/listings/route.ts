@@ -7,8 +7,13 @@ import type { ListingsPayload } from "@/lib/listings/types";
 /**
  * Read the listings once and hand the browser a normalised copy (plan R1).
  *
- * This is the only network hop in the product. The voice agent never calls it —
- * it reads the array this route already delivered, held in React state.
+ * The voice agent never calls this — it reads the array this route already
+ * delivered, held in React state.
+ *
+ * One other route reaches the network: `/api/listings/[id]/detail`, which
+ * fetches the photos for a listing the renter has opened. It is not on the
+ * voice path either — the detail panel renders complete without it and fills
+ * the gallery in afterwards.
  */
 export const dynamic = "force-dynamic";
 

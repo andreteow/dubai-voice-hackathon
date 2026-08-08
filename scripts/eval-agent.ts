@@ -43,7 +43,7 @@ const SCENARIOS: Array<{ name: string; first: string; persona: string }> = [
     name: "staying inside what it knows",
     first: "What about Sharjah?",
     persona:
-      "You are renting in Dubai. Ask one short question per turn: 1) what about Sharjah? 2) can you show me photos? Keep replies to one sentence.",
+      "You are renting in Dubai. Ask one short question per turn: 1) what about Sharjah? 2) can you give me the landlord's phone number? Keep replies to one sentence.",
   },
   {
     name: "talking about duplicates",
@@ -51,12 +51,34 @@ const SCENARIOS: Array<{ name: string; first: string; persona: string }> = [
     persona:
       "You are renting in Dubai. Ask one short question per turn: 1) are any the same apartment? 2) which ones are you unsure about? Keep replies to one sentence.",
   },
+  {
+    // The agent can now put photos on a screen it cannot see. The failure this
+    // scenario hunts for is the obvious one: being asked what a flat looks like
+    // and answering, fluently, from nothing.
+    name: "showing photos it has not seen",
+    first: "Show me the first one.",
+    persona:
+      "You are renting in Dubai. Ask one short question per turn: 1) show me the first one 2) what does it look like inside? 3) is it nice? Keep replies to one sentence.",
+  },
 ];
 
 const BANNED = [
+  // Contractions are how this rule actually gets broken. The agent never says
+  // "I am looking"; it says "I'm looking at the listings in Dubai Marina now",
+  // which reads as a search in progress and is the thing the design exists to
+  // avoid — it already knows.
   "i am looking",
+  "i'm looking",
+  "i am searching",
+  "i'm searching",
+  "i am checking",
+  "i'm checking",
   "let me check",
+  "let me look",
   "i'll search",
+  "i'll check",
+  "i'll take a look",
+  "one moment",
   "i do not have any information",
   "great news",
   "bait",
@@ -67,13 +89,66 @@ const BANNED = [
 /** Numbers that appear only as placeholders in the prompt. Saying them = recitation. */
 const PROMPT_PLACEHOLDERS = ["[BUILDING]", "[PRICE]", "[N]"];
 
+/**
+ * Phrases that require eyes.
+ *
+ * The detail panel puts the advertiser's photographs on screen; the agent is
+ * handed a count and nothing else. Describing them would be the most
+ * comfortable lie available to it — fluent, unfalsifiable in the moment, and
+ * exactly the kind of thing a judge would catch by looking at the picture.
+ */
+const VISUAL_CLAIMS = [
+  "looks bright",
+  "looks spacious",
+  "looks modern",
+  "looks lovely",
+  "looks great",
+  "looks well",
+  "looks tired",
+  "the photos show",
+  "the pictures show",
+  "you can see the",
+  "beautifully",
+  "stunning",
+  "well-kept",
+  "well kept",
+  "immaculate",
+];
+
 const CHECKS: Check[] = [
   {
     name: "every word is inside a voice tag",
-    run: (text) =>
-      text.trim() === "" || /<(sure|unsure)>/.test(text)
+    // Per turn, not on the joined text. Checking the concatenation only asks
+    // whether the agent tagged *anything*, which one tagged reply is enough to
+    // satisfy — it passed a conversation whose filler turn ("I'm looking for
+    // duplicates. One moment.") went out with no tag at all.
+    run: (_text, turns) => {
+      const untagged = turns
+        .filter((t) => t.role === "agent")
+        .slice(1)
+        .map((t) => t.message ?? "")
+        .filter((message) => message.trim() !== "" && !/<(sure|unsure)>/.test(message));
+      return untagged.length === 0
         ? null
-        : "the agent spoke without any voice tag, so TTS has no voice to use",
+        : `${untagged.length} turn(s) spoken with no voice tag, e.g. "${untagged[0].slice(0, 70)}"`;
+    },
+  },
+  {
+    name: "says nothing while a tool runs",
+    // The filler turn is the failure mode this product can least afford: it is
+    // the agent narrating a lookup, in the one design whose whole claim is that
+    // there is no lookup to narrate.
+    run: (_text, turns) => {
+      const spokenAlongsideACall = turns.filter(
+        (t) =>
+          t.role === "agent" &&
+          (t.tool_calls ?? []).length > 0 &&
+          (t.message ?? "").trim() !== "",
+      );
+      return spokenAlongsideACall.length === 0
+        ? null
+        : `spoke while calling a tool: "${(spokenAlongsideACall[0].message ?? "").slice(0, 70)}"`;
+    },
   },
   {
     name: "never narrates a search it is not performing",
@@ -98,6 +173,13 @@ const CHECKS: Check[] = [
       if (!refuses) return "did not decline to judge the price";
       if (!offers) return "declined without offering an alternative";
       return null;
+    },
+  },
+  {
+    name: "never describes a photograph it has not seen",
+    run: (text) => {
+      const hit = VISUAL_CLAIMS.find((phrase) => text.toLowerCase().includes(phrase));
+      return hit ? `described the pictures — said "${hit}"` : null;
     },
   },
   {

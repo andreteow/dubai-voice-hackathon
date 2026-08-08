@@ -7,7 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Built and shipped.** All six implementation units (U1–U6) are complete: listings on screen, voice
 answering from memory, the uncertain voice, duplicate detection with a comparison panel, agent
 conduct evals, and demo verification. A marketing landing page with email capture was added on top
-of that, then U7–U9 (captions rail, rows scrolling into view, panel staleness). 59 tests green,
+of that, then U7–U9 (captions rail, rows scrolling into view, panel staleness), then U10–U11 (the
+listing detail sheet, and pausing a conversation instead of ending it). 102 tests green,
 production build passes.
 
 `docs/plans/2026-08-08-001-feat-second-opinion-plan.md` records the requirements (R1–R21), key
@@ -33,11 +34,12 @@ on it.
 
 ```
 npm run dev          # :3000 is the landing page, :3000/app is the demo
-npm test             # 46 pure-function tests, no network (committed fixture)
+npm test             # 102 pure-function tests, no network (committed fixtures)
 npm run eval         # agent conduct via scripted conversations — no microphone needed
 npm run sync-agent   # idempotent ElevenLabs agent provisioning from committed JSON
 npm run check-hero   # is a demo-worthy duplicate group live right now? run before recording
 npm run fixture      # recapture the test fixture from live data
+npm run detail-fixture  # recapture the stored-page fixture the HTML parser tests
 ```
 
 ## Two surfaces
@@ -70,16 +72,18 @@ React state that drives the screen — so speech and UI move together with zero 
 ```
 context.dev WebDB ──(server-only, on mount + explicit re-read)──> /api/listings ──> React state
                                                                                       │
-ElevenLabs agent ──(client tools: searchListings, findDuplicates)─────────────────────┘
+ElevenLabs agent ──(client tools: searchListings, findDuplicates, openListing)────────┘
                                                                                       │
-                                                          listings table + comparison panel + captions
+                                          listings table + comparison panel + captions + detail sheet
+                                                                                      │
+                     stored page snapshot ──> /api/listings/[id]/detail ──> photos, off the voice path
 ```
 
 Consequences that constrain how you write code here:
 
 - The context.dev API key **never reaches the browser** — one server route proxies it (KTD6).
 - All judged logic lives in **pure functions** — `lib/listings/` (`normalize`, `trust`,
-  `duplicates`, `stats`) plus `lib/transcript.ts`. No I/O below the route layer. These are the only
+  `duplicates`, `stats`, `comparables`, `snapshot`) plus `lib/transcript.ts`. No I/O below the route layer. These are the only
   things with tests (KTD5) — the voice agent and UI have no unit tests; agent *conduct* is covered
   by `npm run eval`, and delivery is verified by speaking to it.
 - **Agent config is committed, not clicked.** Prompt, tool schemas, and voice labels live in
@@ -105,10 +109,25 @@ Consequences that constrain how you write code here:
 - **A missing size normalises to `null`, not `0`** — `0` would corrupt duplicate matching.
 - **The agent says what to check, never what to do.** It does not recommend a listing, judge whether
   a price is good, or attribute motive to any agency (R13). The word "bait" is out of scope.
-- **Nothing on screen may outlive the question that put it there** (R24). The comparison panel and
-  the row highlights belong to the turn that produced them; `groupIsInResults` retires the panel as
-  soon as its listings leave the current result set. A stale panel is worse than an empty one — it
-  reads as an answer to the question just asked.
+- **Nothing on screen may outlive the question that put it there** (R24). The comparison panel, the
+  detail sheet, and the row highlights belong to the turn that produced them; `retireStalePanels` in
+  `VoiceWidget` closes both panels as soon as their listings leave the current result set. A stale
+  panel is worse than an empty one — it reads as an answer to the question just asked.
+- **A duplicate is never a comparable.** `comparablesFor` puts the same physical flat advertised
+  elsewhere in its own band and excludes it from "similar flats". One is a price you could hold an
+  agent to; the other is a price you could argue from. Merged into one list, the product's actual
+  finding disappears among near-misses.
+- **`MATERIAL_SPREAD_AED` applies wherever a price gap is shown, not just in the duplicate panel.**
+  The detail sheet renders a gap in green only when it clears that bar — an early build announced a
+  one-dirham difference as a saving, which is the fastest way to stop a renter believing the
+  numbers that matter. The `openListing` tool result carries `significance` for the same reason.
+- **Comparable sizing is a percentage; duplicate matching is an absolute 3 sqft.** They answer
+  different questions. "Same floor plan, rounded differently" is measured in feet at any unit size;
+  "comparable flat" scales, because 100 sqft is a different flat at 600 and a rounding error at
+  2,000. See the header of `comparables.ts` — do not unify them.
+- **The agent has photos now, and has not seen them.** It may say they are on screen (only after
+  `openListing` returns `opened: true`) and must never describe one. `npm run eval` has a scenario
+  and a banned-phrase list whose only job is to catch it doing so.
 
 ## context.dev API facts (probed live — these supersede the docs)
 
@@ -125,6 +144,22 @@ Full results in `docs/ideation/context-dev-probe-results.md`. The load-bearing o
   an explicit `type` discriminator.
 - Every row carries `_meta` with `extraction_confidence`, per-field confidence, `change_count`, and
   `last_changed_at`. `_meta` is queryable.
+- **`GET /webdbs/rows/{id}/snapshot?format=html` returns the original page, ~2s, 0 credits.** This is
+  where the listing photos come from. It matters because **Bayut captchas live scraping**:
+  `/web/scrape/markdown` on a detail URL returns "Captcha | Bayut" after ~9s. The snapshot is the
+  copy context.dev's crawler already took, so nobody is being visited and nothing can block it.
+  `?format=markdown` (the default) strips images — you need `html`. Parsed by `lib/listings/snapshot.ts`.
+- The stored page carries fields the WebDB schema never extracted: bathrooms, the amenity list, the
+  agent's prose description, and Bayut's own listing reference. Bayut's CSS class names are hashed
+  and change per deploy, so the parser keys on semantics (`<h1>`, `aria-label="Baths"`) only.
+- Bayut images (`images.bayut.com/thumbnails/{id}-800x600.jpeg`) hotlink fine — no referer check,
+  `cache-control: max-age=31536000`.
+- **`GET /webdbs/rows/{id}/history` is not usable as a "what changed" feature.** It looked promising
+  — 51 of 200 rows have changes — but the tally is `listed_relative` 41, `bedrooms` 38, `community`
+  26, `price` 7, and all 7 price moves are empty↔value flapping on sale listings. Zero genuine rent
+  changes. `community: "Dubai Marina" → "5242 Towers, Dubai Marina, Dubai" → "Dubai Marina"` is the
+  extractor being non-deterministic. That endpoint measures the crawler, not the market. Do not
+  build a price-history feature on it without re-checking this.
 - `/web/search` is 2–4s — **not voice-safe inline**. `/news/search`, `/web/competitors`, and
   `/people/enrich` all return **403** on this key (entitlement-gated, not fixable with credits).
 - Binding constraint is **60 req/min on the data plane**, not credits (50k+ available). Monitors get

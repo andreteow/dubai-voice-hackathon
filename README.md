@@ -71,17 +71,23 @@ On `/app`, allow microphone access, press **Talk to it**, and ask
 What happens on screen as you speak: the listings behind the answer are outlined and scrolled into
 view, what was said appears as captions above the button, and asking about duplicates lifts a
 comparison panel above the table. The captions carry the hedge in amber, so the uncertain voice is
-legible with the sound off. Both the highlight and the panel belong to the question being answered:
-change the subject and they go.
+legible with the sound off. Ask to see one — "open the third one" — or click any row, and it opens
+in full: the advertiser's photos, the same apartment advertised elsewhere, and where its rent sits
+among similar flats. All three belong to the question being answered: change the subject and they go.
+
+You can pause instead of hanging up. The microphone goes dead and the agent goes silent, but the
+socket and everything it remembers about the conversation stay open — anything it was mid-way
+through saying is still readable in the captions.
 
 ### Other commands
 
 | | |
 |---|---|
-| `npm test` | The pure functions — 59 tests. No network; runs off a committed fixture. |
+| `npm test` | The pure functions — 102 tests. No network; runs off committed fixtures. |
 | `npm run eval` | Agent conduct, via scripted conversations. No microphone needed. |
 | `npm run check-hero` | Is there currently a duplicate worth demoing? Run before recording. |
-| `npm run fixture` | Recapture the test fixture from live data. |
+| `npm run fixture` | Recapture the listings fixture from live data. |
+| `npm run detail-fixture` | Recapture the stored-page fixture the HTML parser is tested against. |
 | `npm run build` | Production build. |
 
 ---
@@ -126,13 +132,18 @@ you also updates the screen: one mechanism, not two.
   │            ▲                   │                        (holds the key)
   │      client tools              │
   │   searchListings ·             │
-  │   findDuplicates               │
+  │   findDuplicates ·             │
+  │   openListing                  │
   │            ▲                   │
   │  ElevenLabs agent              │
   │  two voices, one socket        │
   └────────────────────────────────┘
         no arrow crosses this boundary during a conversation
 ```
+
+Opening a listing is the one thing that fetches: its photos come from the page context.dev already
+stored, over `/api/listings/[id]/detail`. It runs *after* the panel has rendered from memory, never
+during a turn — so the property above still holds.
 
 The only other server call mints a short-lived signed URL when you press talk, so the ElevenLabs
 key never reaches the browser either.
@@ -146,6 +157,8 @@ Pure functions carry every judgement the product makes, and they are where the t
 | `lib/listings/normalize.ts` | What a listing *is*, once the strings are gone |
 | `lib/listings/trust.ts` | Whether a listing is complete enough to state plainly |
 | `lib/listings/duplicates.ts` | Whether two listings are the same apartment, and whether a comparison still describes what is on screen |
+| `lib/listings/comparables.ts` | Which flats a listing can honestly be priced against — and which are the same flat, not a comparable |
+| `lib/listings/snapshot.ts` | What can be read out of the stored listing page, and what is a neighbouring advert's photo rather than this one's |
 | `lib/listings/stats.ts` | Which figures the marketing page is entitled to claim |
 | `lib/transcript.ts` | Which part of a spoken answer was said in the uncertain voice |
 

@@ -44,6 +44,32 @@ export function classifySpread(spreadAed: number): SpreadSignificance {
   return spreadAed >= MATERIAL_SPREAD_AED ? "material" : "ordinary";
 }
 
+/**
+ * Are these two adverts the same physical apartment?
+ *
+ * The pairwise form of what `groupDuplicates` does by clustering, on the same
+ * calibrated tolerance. It exists because the detail panel needs to ask about
+ * one listing rather than partition a whole result set — and because a
+ * duplicate must be kept out of that panel's *comparables*: the same flat at
+ * another agency is not a similar flat to price against, it is this flat, and
+ * conflating the two is the exact confusion the product exists to remove.
+ *
+ * Note this deliberately says nothing about price. `groupDuplicates` drops
+ * groups whose prices all agree, because two agencies quoting one number is not
+ * a finding worth a panel. Identity is still identity, so that rule does not
+ * belong here.
+ */
+export function isSameApartment(a: Listing, b: Listing): boolean {
+  if (a.id === b.id) return false;
+  if (!isComparable(a) || !isComparable(b)) return false;
+  if (normalizeBuildingKey(a.building) !== normalizeBuildingKey(b.building)) return false;
+  if (a.bedrooms !== b.bedrooms) return false;
+  return (
+    Math.abs((a.sizeSqft as number) - (b.sizeSqft as number)) <=
+    PROBABLE_MATCH_TOLERANCE_SQFT
+  );
+}
+
 /** Listings can only be compared when they state the facts the match depends on. */
 function isComparable(listing: Listing): boolean {
   return (

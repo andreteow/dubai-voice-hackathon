@@ -52,15 +52,26 @@ export function medianPrice(listings: Listing[]): number | null {
     : prices[mid];
 }
 
+/**
+ * The area a listing is in, as someone renting would name it.
+ *
+ * Bayut writes the address inward-out and ends on the emirate:
+ * "Marina Promenade, Dubai Marina, Dubai". The last segment is always "Dubai"
+ * and the first is usually the sub-development, so the useful label is the one
+ * before last — the area a renter would actually say out loud.
+ */
+export function communityLabel(community: string | null): string | null {
+  if (!community) return null;
+  const parts = community.split(",").map((p) => p.trim()).filter(Boolean);
+  if (parts.length === 0) return null;
+  return parts.length > 1 ? parts[parts.length - 2] : parts[0];
+}
+
 /** The areas the agent actually holds, for honest out-of-scope answers (R17). */
 export function knownCommunities(listings: Listing[]): string[] {
   const seen = new Set<string>();
   for (const listing of listings) {
-    const community = listing.community;
-    if (!community) continue;
-    // "Marina Promenade, Dubai Marina, Dubai" -> "Dubai Marina"
-    const parts = community.split(",").map((p) => p.trim());
-    const label = parts.length > 1 ? parts[parts.length - 2] : parts[0];
+    const label = communityLabel(listing.community);
     if (label) seen.add(label);
   }
   return [...seen].sort();

@@ -4,10 +4,15 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { DuplicateComparison } from "@/components/DuplicateComparison";
+import { ListingDetail } from "@/components/ListingDetail";
 import { ListingsTable } from "@/components/ListingsTable";
 import { Transcript } from "@/components/Transcript";
 import { VoiceWidget } from "@/components/VoiceWidget";
-import type { DuplicateGroup, ListingsPayload } from "@/lib/listings/types";
+import type {
+  DuplicateGroup,
+  Listing,
+  ListingsPayload,
+} from "@/lib/listings/types";
 import type { TranscriptEntry } from "@/lib/transcript";
 
 /**
@@ -22,7 +27,10 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [highlightIds, setHighlightIds] = useState<string[]>([]);
   const [group, setGroup] = useState<DuplicateGroup | null>(null);
+  const [openListing, setOpenListing] = useState<Listing | null>(null);
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
+
+  const closeListing = useCallback(() => setOpenListing(null), []);
 
   // Stable across renders, so the conversation SDK cannot end up holding the
   // version of these that existed when the socket opened.
@@ -104,7 +112,21 @@ export default function Home() {
 
       <DuplicateComparison group={group} />
 
-      <ListingsTable listings={listings} highlightIds={highlightIds} />
+      <ListingsTable
+        listings={listings}
+        highlightIds={highlightIds}
+        openId={openListing?.id ?? null}
+        onOpen={setOpenListing}
+      />
+
+      {/* Rendered last so it stacks over the dock — the captions are still
+          worth reading with the sheet open, but they are not what is being
+          looked at. */}
+      <ListingDetail
+        listing={openListing}
+        listings={listings}
+        onClose={closeListing}
+      />
 
       {/* One fixed element, so the captions cannot drift out of alignment with
           the button row if either changes height. */}
@@ -113,8 +135,10 @@ export default function Home() {
         <VoiceWidget
           listings={listings}
           group={group}
+          openListing={openListing}
           onHighlight={setHighlightIds}
           onShowGroup={setGroup}
+          onOpenListing={setOpenListing}
           onTranscript={appendTranscript}
           onResetTranscript={resetTranscript}
         />

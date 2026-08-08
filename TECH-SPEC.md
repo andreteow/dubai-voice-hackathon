@@ -63,13 +63,14 @@ together instead of racing.
 flowchart TD
     subgraph Browser
         MEM[(172 rentals in React state)]
-        CT{{"client tools:<br/>searchListings · findDuplicates"}}
+        CT{{"client tools:<br/>searchListings · findDuplicates · openListing"}}
         EL[ElevenLabs agent<br/>2 voices, 1 socket]
-        UI[listings table + comparison panel + captions]
+        UI[listings table + comparison panel + captions + detail sheet]
     end
     subgraph Server
         API["/api/listings — holds the key"]
         SU["/api/agent-signed-url"]
+        DT["/api/listings/[id]/detail — photos, off the voice path"]
     end
     CTX[("context.dev WebDB<br/>491 Bayut rows · re-syncs 10m")]
 
@@ -80,10 +81,19 @@ flowchart TD
     CT -->|reads, 0 ms| MEM
     CT -->|sets highlight / comparison| UI
     SU -.->|once, on connect| EL
+    UI -.->|after the sheet has rendered| DT
+    DT -.->|stored page snapshot, 0 credits| CTX
 ```
 
-**No arrow crosses the Browser boundary during a conversation.** The only server calls are the read
-on mount, a signed URL when you press talk, and an explicit "read again".
+**No arrow crosses the Browser boundary during a conversation.** The solid arrows are the read on
+mount, a signed URL when you press talk, and an explicit "read again".
+
+The dotted arrow to `/api/listings/[id]/detail` is the one exception, and it is off the voice path
+by construction: opening a listing renders the whole panel from memory first — specs, trust verdict,
+comparables, the same flat advertised elsewhere — and only then fetches photographs into a skeleton.
+No turn awaits it. It reads the page context.dev's crawler already stored rather than visiting
+Bayut, which both costs nothing and is the only way to get the photos at all: Bayut serves a captcha
+to anything fetching a detail page on demand.
 
 **Stated plainly, because it cuts both ways: the agent does not see data that changes
 mid-conversation.** It answers from the snapshot taken at page load. That is a deliberate trade —
@@ -91,7 +101,7 @@ sub-second answers and immunity to venue wifi, bought with staleness bounded by 
 has been open. The re-read button exists for exactly that, and the agent always states when it last
 read. A design that re-queried per turn would be more live and materially worse to talk to.
 
-The pipeline below is three pure functions, and they hold every judged decision:
+The pipeline below is the core three pure functions, and they hold every judged decision:
 
 ```
 raw row (every field a string)
@@ -179,8 +189,10 @@ legible as well as audible — which matters, because the delivery channel is a 
 judge may watch with the sound off.
 
 **Used:** Agents Platform with two `supported_voices` (Sarah for the confident register, Will for
-the uncertain one — different speakers, so the switch survives compression), two client tools,
-signed-URL auth, `@elevenlabs/react`, and the simulation API for automated conduct evals.
+the uncertain one — different speakers, so the switch survives compression), three client tools,
+signed-URL auth, `@elevenlabs/react`, controlled `micMuted`/`volume` plus `sendUserActivity`
+keepalives for pausing without dropping the socket, and the simulation API for automated conduct
+evals.
 
 **Not used:** RAG — there is no corpus; the data is a 172-row table that fits in memory, and a
 knowledge base would add ~250ms for nothing.

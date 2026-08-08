@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "fixture": "tsx scripts/capture-fixture.ts",
+    "detail-fixture": "tsx scripts/capture-detail-fixture.ts",
     "check-hero": "tsx scripts/check-hero.ts",
     "sync-agent": "tsx agent/sync-agent.ts",
     "eval": "tsx scripts/eval-agent.ts"

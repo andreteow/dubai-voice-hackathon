@@ -8,10 +8,15 @@ import type { Listing } from "@/lib/listings/types";
 export function ListingsTable({
   listings,
   highlightIds = [],
+  openId = null,
+  onOpen,
 }: {
   listings: Listing[];
   /** Listing ids the agent is currently talking about (plan R19). */
   highlightIds?: string[];
+  /** The listing whose detail sheet is open, so the row can show it is the one. */
+  openId?: string | null;
+  onOpen?: (listing: Listing) => void;
 }) {
   const highlighted = new Set(highlightIds);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -73,6 +78,8 @@ export function ListingsTable({
             const rowClasses = [
               highlighted.has(listing.id) ? "highlight" : "",
               verdict.trusted ? "" : "untrusted",
+              onOpen ? "openable" : "",
+              listing.id === openId ? "opened" : "",
             ]
               .filter(Boolean)
               .join(" ");
@@ -81,13 +88,25 @@ export function ListingsTable({
             <tr
               key={listing.id}
               className={rowClasses || undefined}
+              // The whole row is the target for a mouse. The keyboard route is
+              // the real button in the first cell, whose click bubbles here —
+              // one handler, and no `role="button"` on a table row.
+              onClick={onOpen ? () => onOpen(listing) : undefined}
               title={
                 verdict.trusted
                   ? undefined
                   : `This listing ${trustPhrases(verdict).join(", and ")}.`
               }
             >
-              <td>{listing.building ?? "—"}</td>
+              <td>
+                {onOpen ? (
+                  <button type="button" className="rowopen">
+                    {listing.building ?? "—"}
+                  </button>
+                ) : (
+                  (listing.building ?? "—")
+                )}
+              </td>
               <td>{listing.community ?? "—"}</td>
               <td className="num">
                 {listing.bedrooms === null
@@ -114,7 +133,14 @@ export function ListingsTable({
               </td>
               <td>
                 {listing.sourceUrl ? (
-                  <a href={listing.sourceUrl} target="_blank" rel="noreferrer">
+                  <a
+                    href={listing.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    // Going to Bayut and opening the sheet are different
+                    // intents; without this the row swallows the link.
+                    onClick={(event) => event.stopPropagation()}
+                  >
                     view
                   </a>
                 ) : (

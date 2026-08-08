@@ -91,3 +91,25 @@ export interface ListingsPayload {
   readAt: string;
   total: number;
 }
+
+/**
+ * What the /api/listings/[id]/detail route returns: the parts of a listing that
+ * live on its page rather than in the WebDB row.
+ *
+ * Declared here rather than in the route, because the client component that
+ * renders it must not import from a module that pulls in `server-only`. It
+ * happens to survive `import type` erasure today; it would stop the build the
+ * day someone needed a value from that file.
+ */
+export interface ListingDetailPayload {
+  id: string;
+  /** Gallery photos from the advert, cover first. */
+  photos: string[];
+  headline: string | null;
+  description: string | null;
+  bathrooms: number | null;
+  amenities: string[];
+  reference: string | null;
+  /** True when the stored page could not be read. The panel drops the gallery. */
+  unavailable: boolean;
+}
