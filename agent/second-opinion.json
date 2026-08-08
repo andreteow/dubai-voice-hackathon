@@ -39,6 +39,27 @@
         },
         "required": []
       }
+    },
+    {
+      "type": "client",
+      "name": "findDuplicates",
+      "description": "Find apartments that appear more than once across different listings. Returns groups, each with the building, bedrooms, size, every price with its agency, the gap between cheapest and dearest, whether that gap is material or ordinary, whether all the listings belong to one agency, and whether the match is exact or only probable. Call this when asked about duplicates, the same flat listed twice, or price differences. Calling it also puts the group on screen.",
+      "expects_response": true,
+      "response_timeout_secs": 5,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "community": {
+            "type": "string",
+            "description": "Restrict to one area. Omit to search everywhere."
+          },
+          "bedrooms": {
+            "type": "number",
+            "description": "Restrict to a bedroom count. Omit for any."
+          }
+        },
+        "required": []
+      }
     }
   ],
   "llm": "gemini-2.5-flash",

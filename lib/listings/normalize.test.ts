@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import fixture from "./fixtures/listings.sample.json";
 import {
+  looksLikeSalePrice,
   normalizeBedrooms,
   normalizeBuildingKey,
   normalizeListings,
   normalizePrice,
   normalizeSize,
+  rentalsOnly,
 } from "./normalize";
 import type { RawListingRow } from "./types";
 
@@ -92,5 +94,26 @@ describe("against the real fixture", () => {
     const listings = normalizeListings(rows);
     const unreadable = listings.filter((l) => l.bedrooms === null);
     expect(unreadable).toHaveLength(0);
+  });
+});
+
+describe("sale-price contamination", () => {
+  it("excludes a purchase price wearing a rent label", () => {
+    const [sale] = normalizeListings([{ price_aed_per_year: "4799999" }]);
+    expect(looksLikeSalePrice(sale)).toBe(true);
+  });
+
+  it("keeps even an expensive genuine rent", () => {
+    const [pricey] = normalizeListings([{ price_aed_per_year: "450000" }]);
+    expect(looksLikeSalePrice(pricey)).toBe(false);
+  });
+
+  it("removes the sale listings from the real fixture", () => {
+    const all = normalizeListings(rows);
+    const rentals = rentalsOnly(all);
+    expect(rentals.length).toBeLessThan(all.length);
+    // Nothing left should be implausible as an annual rent.
+    const dearest = Math.max(...rentals.map((l) => l.priceAed ?? 0));
+    expect(dearest).toBeLessThan(1_000_000);
   });
 });

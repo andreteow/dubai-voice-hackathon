@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { DuplicateComparison } from "@/components/DuplicateComparison";
 import { ListingsTable } from "@/components/ListingsTable";
 import { VoiceWidget } from "@/components/VoiceWidget";
-import type { ListingsPayload } from "@/lib/listings/types";
+import type { DuplicateGroup, ListingsPayload } from "@/lib/listings/types";
 
 /**
  * The single screen.
@@ -17,6 +18,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [highlightIds, setHighlightIds] = useState<string[]>([]);
+  const [group, setGroup] = useState<DuplicateGroup | null>(null);
 
   const read = useCallback(async () => {
     setLoading(true);
@@ -85,9 +87,15 @@ export default function Home() {
         </button>
       </div>
 
+      <DuplicateComparison group={group} />
+
       <ListingsTable listings={listings} highlightIds={highlightIds} />
 
-      <VoiceWidget listings={listings} onHighlight={setHighlightIds} />
+      <VoiceWidget
+        listings={listings}
+        onHighlight={setHighlightIds}
+        onShowGroup={setGroup}
+      />
     </main>
   );
 }

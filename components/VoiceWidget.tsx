@@ -9,8 +9,9 @@ import {
   medianPrice,
   type ListingsFilter,
 } from "@/lib/listings/answer";
+import { groupDuplicates } from "@/lib/listings/duplicates";
 import { classifyTrust, trustPhrases } from "@/lib/listings/trust";
-import type { Listing } from "@/lib/listings/types";
+import type { DuplicateGroup, Listing } from "@/lib/listings/types";
 
 /**
  * The voice surface.
@@ -26,9 +27,12 @@ import type { Listing } from "@/lib/listings/types";
 export function VoiceWidget({
   listings,
   onHighlight,
+  onShowGroup,
 }: {
   listings: Listing[];
   onHighlight: (ids: string[]) => void;
+  /** Puts a duplicate group on screen as the agent starts talking about it. */
+  onShowGroup: (group: DuplicateGroup | null) => void;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
@@ -57,11 +61,17 @@ export function VoiceWidget({
         }
 
         const untrusted = matches.filter((l) => !classifyTrust(l).trusted);
+        // Volunteered, not waited for (R15) — but only what is actually in the
+        // results the renter just asked about, so it can never ambush a script.
+        const groups = groupDuplicates(matches);
 
         return JSON.stringify({
           count: matches.length,
           medianPriceAed: medianPrice(matches),
           untrustedCount: untrusted.length,
+          duplicateGroupsInTheseResults: groups.length,
+          widestGapAed: groups[0]?.spreadAed ?? null,
+          widestGapBuilding: groups[0]?.building ?? null,
           listings: matches.slice(0, 12).map((l) => {
             const verdict = classifyTrust(l);
             return {
@@ -77,6 +87,42 @@ export function VoiceWidget({
               missing: trustPhrases(verdict),
             };
           }),
+        });
+      },
+
+      findDuplicates: (params: { community?: string; bedrooms?: number }) => {
+        const matches = filterListings(listingsRef.current, params ?? {});
+        const groups = groupDuplicates(matches);
+
+        // The screen and the speech move together: one call does both.
+        onShowGroup(groups[0] ?? null);
+        onHighlight(groups[0]?.listings.map((l) => l.id) ?? []);
+
+        if (groups.length === 0) {
+          return JSON.stringify({
+            groups: 0,
+            note: "No apartment appears more than once in these results.",
+          });
+        }
+
+        return JSON.stringify({
+          groups: groups.length,
+          materialGroups: groups.filter((g) => g.significance === "material").length,
+          onScreen: groups[0].building,
+          details: groups.slice(0, 5).map((g) => ({
+            building: g.building,
+            bedrooms: g.bedrooms,
+            sizeSqft: g.sizeSqft,
+            confidence: g.confidence,
+            significance: g.significance,
+            sameAgency: g.sameAgency,
+            spreadAed: g.spreadAed,
+            prices: g.listings.map((l) => ({
+              priceAed: l.priceAed,
+              agency: l.agency,
+              missing: trustPhrases(classifyTrust(l)),
+            })),
+          })),
         });
       },
     },
@@ -106,7 +152,8 @@ export function VoiceWidget({
   const stop = useCallback(async () => {
     await conversation.endSession();
     onHighlight([]);
-  }, [conversation, onHighlight]);
+    onShowGroup(null);
+  }, [conversation, onHighlight, onShowGroup]);
 
   const connected = conversation.status === "connected";
 

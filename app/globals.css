@@ -213,3 +213,105 @@ button.talk:disabled {
   color: #ff9b9b;
   font-size: 13px;
 }
+
+.dupe {
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 22px;
+  background: var(--panel);
+}
+
+.dupe-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.dupe-eyebrow {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--accent);
+}
+
+.dupe-head h2 {
+  margin: 4px 0 2px;
+  font-size: 21px;
+  letter-spacing: -0.01em;
+}
+
+.dupe-attrs {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13.5px;
+}
+
+.dupe-spread {
+  text-align: right;
+}
+
+.dupe-spread-value {
+  display: block;
+  font-size: 27px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.dupe-sig {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.dupe-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.dupe-card {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 13px 15px;
+  background: var(--panel-2);
+}
+
+.dupe-card.cheapest {
+  border-color: var(--good);
+}
+
+.dupe-price {
+  font-size: 19px;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 3px;
+}
+
+.dupe-agency {
+  font-size: 13.5px;
+  margin-bottom: 3px;
+}
+
+.dupe-meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.dupe-warn {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--warn);
+}
+
+.dupe-link {
+  display: inline-block;
+  margin-top: 9px;
+  font-size: 12.5px;
+}
+
+@media (max-width: 640px) {
+  .dupe-head { flex-direction: column; }
+  .dupe-spread { text-align: left; }
+}

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { queryListings } from "@/lib/listings/context-client";
-import { normalizeListings } from "@/lib/listings/normalize";
+import { normalizeListings, rentalsOnly } from "@/lib/listings/normalize";
 import type { ListingsPayload } from "@/lib/listings/types";
 
 /**
@@ -15,8 +15,10 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const { rows, total } = await queryListings({ limit: 200 });
+    // Sale listings leak in from the crawl carrying a purchase price in the
+    // annual-rent field. See `looksLikeSalePrice`.
     const payload: ListingsPayload = {
-      listings: normalizeListings(rows),
+      listings: rentalsOnly(normalizeListings(rows)),
       readAt: new Date().toISOString(),
       total,
     };

@@ -83,3 +83,29 @@ export function normalizeListing(row: RawListingRow): Listing {
 export function normalizeListings(rows: RawListingRow[]): Listing[] {
   return rows.map(normalizeListing);
 }
+
+/**
+ * Bayut's detail URLs do not say whether a listing is for rent or for sale
+ * (both are `/property/details-<id>.html`), and the crawl follows links out of
+ * the to-rent pages into sale listings. Those arrive with a purchase price in
+ * the annual-rent field.
+ *
+ * The captured data separates cleanly: 119 listings between 50k and 150k, 43
+ * between 150k and 500k, **nothing at all between 500k and 1M**, then 23 above
+ * 1M. The empty band is what makes this a boundary rather than a guess.
+ *
+ * A million dirhams a year is far above any apartment rent in the communities
+ * covered here, so anything at or above it is a sale price wearing a rent
+ * label. Left in, it would put a 700,000 "price gap" at the top of the results
+ * — the largest number on screen, and wrong.
+ */
+export const SALE_PRICE_FLOOR_AED = 1_000_000;
+
+export function looksLikeSalePrice(listing: Listing): boolean {
+  return listing.priceAed !== null && listing.priceAed >= SALE_PRICE_FLOOR_AED;
+}
+
+/** Listings that are actually for rent. */
+export function rentalsOnly(listings: Listing[]): Listing[] {
+  return listings.filter((listing) => !looksLikeSalePrice(listing));
+}
