@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "fixture": "tsx scripts/capture-fixture.ts",
     "check-hero": "tsx scripts/check-hero.ts",
-    "sync-agent": "tsx agent/sync-agent.ts"
+    "sync-agent": "tsx agent/sync-agent.ts",
+    "eval": "tsx scripts/eval-agent.ts"
   },
   "dependencies": {
     "@elevenlabs/react": "^0.7.0",
