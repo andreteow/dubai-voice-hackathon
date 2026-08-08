@@ -9,6 +9,7 @@ import {
   medianPrice,
   type ListingsFilter,
 } from "@/lib/listings/answer";
+import { classifyTrust, trustPhrases } from "@/lib/listings/trust";
 import type { Listing } from "@/lib/listings/types";
 
 /**
@@ -55,17 +56,27 @@ export function VoiceWidget({
           });
         }
 
+        const untrusted = matches.filter((l) => !classifyTrust(l).trusted);
+
         return JSON.stringify({
           count: matches.length,
           medianPriceAed: medianPrice(matches),
-          listings: matches.slice(0, 12).map((l) => ({
-            building: l.building,
-            community: l.community,
-            bedrooms: l.bedrooms,
-            priceAed: l.priceAed,
-            sizeSqft: l.sizeSqft,
-            agency: l.agency,
-          })),
+          untrustedCount: untrusted.length,
+          listings: matches.slice(0, 12).map((l) => {
+            const verdict = classifyTrust(l);
+            return {
+              building: l.building,
+              community: l.community,
+              bedrooms: l.bedrooms,
+              priceAed: l.priceAed,
+              sizeSqft: l.sizeSqft,
+              agency: l.agency,
+              // Carried inline so the agent knows which listings to hedge on
+              // without a second call.
+              trusted: verdict.trusted,
+              missing: trustPhrases(verdict),
+            };
+          }),
         });
       },
     },

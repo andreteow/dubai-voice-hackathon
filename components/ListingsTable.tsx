@@ -1,5 +1,6 @@
 "use client";
 
+import { classifyTrust, trustPhrases } from "@/lib/listings/trust";
 import type { Listing } from "@/lib/listings/types";
 
 export function ListingsTable({
@@ -28,10 +29,26 @@ export function ListingsTable({
           </tr>
         </thead>
         <tbody>
-          {listings.map((listing) => (
+          {listings.map((listing) => {
+            // Marked on screen as well as spoken, so the signal survives muted
+            // playback (R10).
+            const verdict = classifyTrust(listing);
+            const rowClasses = [
+              highlighted.has(listing.id) ? "highlight" : "",
+              verdict.trusted ? "" : "untrusted",
+            ]
+              .filter(Boolean)
+              .join(" ");
+
+            return (
             <tr
               key={listing.id}
-              className={highlighted.has(listing.id) ? "highlight" : undefined}
+              className={rowClasses || undefined}
+              title={
+                verdict.trusted
+                  ? undefined
+                  : `This listing ${trustPhrases(verdict).join(", and ")}.`
+              }
             >
               <td>{listing.building ?? "—"}</td>
               <td>{listing.community ?? "—"}</td>
@@ -52,8 +69,12 @@ export function ListingsTable({
                   ? "—"
                   : `AED ${listing.priceAed.toLocaleString()}`}
               </td>
-              <td>{listing.agency ?? "—"}</td>
-              <td>{listing.listedRelative ?? "—"}</td>
+              <td>
+                {listing.agency ?? <span className="flag">no agency</span>}
+              </td>
+              <td>
+                {listing.listedRelative ?? <span className="flag">no date</span>}
+              </td>
               <td>
                 {listing.sourceUrl ? (
                   <a href={listing.sourceUrl} target="_blank" rel="noreferrer">
@@ -64,7 +85,8 @@ export function ListingsTable({
                 )}
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>
