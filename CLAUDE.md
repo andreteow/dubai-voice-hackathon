@@ -9,7 +9,7 @@ answering from memory, the uncertain voice, duplicate detection with a compariso
 conduct evals, and demo verification. A marketing landing page with email capture was added on top
 of that, then U7–U9 (captions rail, rows scrolling into view, panel staleness), then U10–U11 (the
 listing detail sheet, and pausing a conversation instead of ending it). 102 tests green,
-production build passes.
+production build passes, and it is deployed to Vercel (see **Deploying** at the bottom).
 
 `docs/plans/2026-08-08-001-feat-second-opinion-plan.md` records the requirements (R1–R21), key
 technical decisions (KTD1–KTD7), and units — read it for *why* something is the way it is.
@@ -35,11 +35,26 @@ on it.
 ```
 npm run dev          # :3000 is the landing page, :3000/app is the demo
 npm test             # 102 pure-function tests, no network (committed fixtures)
+npm run test:watch   # same suite, watching
+npm run typecheck    # tsc --noEmit — strict; not run by `npm test`, so run it before you claim done
+npm run build        # production build
+
+npx vitest run lib/listings/duplicates.test.ts   # one file
+npm test -- -t "rounding"                        # one test by name, across the suite
+
 npm run eval         # agent conduct via scripted conversations — no microphone needed
 npm run sync-agent   # idempotent ElevenLabs agent provisioning from committed JSON
 npm run check-hero   # is a demo-worthy duplicate group live right now? run before recording
 npm run fixture      # recapture the test fixture from live data
 npm run detail-fixture  # recapture the stored-page fixture the HTML parser tests
+```
+
+**Every `tsx` script needs the environment loaded by hand.** `next dev` reads `.env.local`; `tsx`
+does not. So `eval`, `sync-agent`, `check-hero`, `fixture` and `detail-fixture` all report their
+keys unset unless you prefix them:
+
+```
+set -a; . ./.env.local; set +a; npm run eval
 ```
 
 ## Two surfaces
@@ -81,11 +96,31 @@ ElevenLabs agent ──(client tools: searchListings, findDuplicates, openListin
 
 Consequences that constrain how you write code here:
 
-- The context.dev API key **never reaches the browser** — one server route proxies it (KTD6).
+- The context.dev API key **never reaches the browser** — one server route proxies it (KTD6). The
+  guard is mechanical, not a convention: `lib/listings/context-client.ts` and `lib/waitlist.ts`
+  both `import "server-only"`, so pulling either into a client bundle fails the build. Keep that
+  import when you add a module that touches a key.
 - All judged logic lives in **pure functions** — `lib/listings/` (`normalize`, `trust`,
-  `duplicates`, `stats`, `comparables`, `snapshot`) plus `lib/transcript.ts`. No I/O below the route layer. These are the only
-  things with tests (KTD5) — the voice agent and UI have no unit tests; agent *conduct* is covered
-  by `npm run eval`, and delivery is verified by speaking to it.
+  `duplicates`, `stats`, `comparables`, `snapshot`, `answer`) plus `lib/transcript.ts`. No I/O below
+  the route layer. These are the only things with tests (KTD5) — the voice agent and UI have no unit
+  tests; agent *conduct* is covered by `npm run eval`, and delivery is verified by speaking to it.
+  **`answer.ts` is the one pure module with no test file**, and it is what every `searchListings`
+  call runs through (`filterListings`, `medianPrice`, `communityLabel`, `knownCommunities`) — there
+  is no net under it, so change it carefully or write the test first.
+- **`openListing` takes a positional `ref`, not an id** — and the two halves of that contract live
+  in different files. `searchListings` returns at most 12 listings numbered `ref: 1..n` and stashes
+  exactly those in `lastResultsRef`; `findDuplicates` overwrites the same ref with the members of
+  the group it just put on screen. `openListing(ref)` indexes into whichever came last. The agent is
+  told, in `agent/second-opinion.json`, to only use a number it was just handed. Change the slice
+  size, the ordering, or what `findDuplicates` stashes, and the agent silently opens a different
+  flat than the one it is talking about. (Other caps in the same tool: 40 rows highlighted, 5
+  duplicate groups described.)
+- **A failed feature disappears; the page does not.** `/api/early-access` and
+  `/api/listings/[id]/detail` both return 200 with an empty/`stale` payload when their backend is
+  unreachable, because a red box over a working panel is worse than a missing photo. `/api/listings`
+  is the exception and 502s — without listings there is no product. Every route and both pages are
+  `export const dynamic = "force-dynamic"`; the figures are live, so nothing here may be
+  statically cached.
 - **Agent config is committed, not clicked.** Prompt, tool schemas, and voice labels live in
   `agent/second-opinion.json`, applied by a re-runnable script, so behaviour is reviewable as a
   diff (KTD4). This is the primary evidence of deliberate tool steering the rubric scores.
@@ -183,9 +218,18 @@ Full results in `docs/ideation/context-dev-probe-results.md`. The load-bearing o
   certain, so this staying true is not load-bearing.
 - **A turn spent calling a tool arrives as a message with no text.** Filter those out before
   rendering, or you get blank caption lines between every question and its answer.
-- `npm run eval` reads `ELEVENLABS_API_KEY` / `ELEVENLABS_AGENT_ID` from the environment, and `tsx`
-  does not load `.env.local` the way `next dev` does. If it reports the keys are unset:
-  `set -a; . ./.env.local; set +a; npm run eval`.
+- **`signedUrl` pairs with `connectionType: "websocket"`.** WebRTC wants a conversation token
+  instead, and the mismatch fails at connect time, not at build time.
+- **Pausing needs a keepalive.** `turn_timeout` is 8s in the committed config, and a muted
+  microphone is indistinguishable from someone who stopped talking — the agent re-engages into a mic
+  that cannot answer, on repeat. `VoiceWidget` calls `sendUserActivity()` every 4s while paused.
+  Those two numbers are coupled across `agent/second-opinion.json` and the component; raise the
+  timeout and the keepalive is wasteful, lower it and the pause breaks.
+- The agent's LLM is **`gemini-2.5-flash` at temperature 0.3**, set in the committed JSON — not a
+  Claude model, and not a dashboard setting. Change it there and re-run `npm run sync-agent`.
+- `sync-agent` also writes `NEXT_PUBLIC_ELEVENLABS_AGENT_ID` on first run. **Nothing reads it.** The
+  browser gets a short-lived signed URL from `/api/agent-signed-url` instead; do not wire the widget
+  to the public var to save a hop.
 
 ## Docs convention
 
@@ -209,3 +253,18 @@ without them the sign-up form still lets people through, it just does not record
 
 MCP servers are configured for ElevenLabs, HeyGen, Supabase, Vapi, Context7 and others — prefer
 those tools over hand-rolled HTTP calls where they cover the task.
+
+## Deploying
+
+Linked to the Vercel project `andreteows-projects/dubai-voice-hackathon` (`.vercel/`, gitignored),
+deployed from the CLI with `vercel --prod`. Nothing is statically cached — every route and both
+pages are `force-dynamic` — so a deploy is only ever as good as the environment behind it.
+
+- The keys are set on Vercel separately from `.env.local`; `vercel env ls production` lists the
+  names. Adding a key locally does **not** put it in production.
+- **`CONTEXT_DEV_API_KEY` is the only key set for Preview.** A preview deployment therefore shows
+  listings and a landing page with live figures, but pressing talk fails at
+  `/api/agent-signed-url` and the waitlist silently returns `stored: false`. Add the ElevenLabs and
+  Supabase vars to Preview before sharing a preview URL as a working demo.
+- `ELEVENLABS_AGENT_ID` on Vercel is a copy, not a link — `npm run sync-agent` writes `.env.local`
+  and knows nothing about the deployment. If you ever recreate the agent, update it there too.
