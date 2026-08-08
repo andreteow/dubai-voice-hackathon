@@ -1,165 +1,123 @@
 # Second Opinion
 
-A voice agent that reads Dubai rental listings and tells you when the same apartment is being
-advertised twice at different prices.
+**A voice agent that tells you when the same Dubai apartment is listed twice, at two prices.**
 
-Ask it about a community and it answers in about a second. When the listings it's about to mention
-include the same physical flat listed by two different agencies, it says so without being asked.
-When a listing is missing the facts you'd need to judge it — no agency name, no posting date — it
-switches to a different, audibly less certain voice and names what's missing.
+Dubai rental portals list the same physical flat more than once. Different agencies advertise the
+same unit, sometimes seventy thousand dirhams apart, and nothing on the site indicates they are the
+same property. You end up negotiating against a number someone else already beat.
 
-It sides with the renter. It will tell you what to check. It won't tell you what to do, won't judge
-whether a price is good, and won't speculate about why two agencies have the same flat at a
-different number.
+Ask it about an area and it answers in under a second. Ask whether any of them are the same
+apartment and it shows you, side by side, with links back to the live listings.
 
-**Repo:** https://github.com/andreteow/dubai-voice-hackathon
+And when a listing is missing something a renter would want — no posting date, no agency named —
+**its voice changes to a different speaker and it says which fact is missing.**
+
+Built for the Dubai AI Hub Voice Agents Hackathon, 8 August 2026.
+[context.dev](https://context.dev) for the live web data, [ElevenLabs](https://elevenlabs.io) for
+the voice.
 
 ---
 
-## What's actually in the data
+## The one idea worth knowing
 
-313 rental listings scraped from Bayut into a context.dev WebDB collection, re-synced every 10
-minutes. Concentrated in Business Bay, Dubai Marina, Downtown Dubai, Dubai Hills Estate and
-Za'abeel, with a long tail of ~40 smaller communities.
+**A voice turn makes no network calls.**
 
-Measured against the live collection:
+The listings are read once when the page loads. After that the agent's tools are *client* tools —
+they run in the browser, synchronously, against an array already in memory. A question becomes
+arithmetic over a few hundred objects, not a round trip.
+
+That is why it answers in under a second with no filler noises, and why it does not care whether
+the venue wifi is working. It is also why the same call that answers you updates the screen: one
+mechanism, not two.
+
+```
+  browser                                   server            context.dev
+  ┌──────────────────────────┐
+  │ listings in React state  │ ◀── once, on load ──┤ /api/listings ├──▶ WebDB query
+  │        ▲                 │
+  │   client tools  (0 ms)   │
+  │        ▲                 │
+  │ ElevenLabs agent         │   ← no arrow crosses this box during a conversation
+  │ two voices, one socket   │
+  └──────────────────────────┘
+```
+
+## Where the thinking is
+
+Three pure functions carry every judgement the product makes. They are the only things worth
+reading closely, and they are where the tests are.
+
+| File | Decides |
+|---|---|
+| `lib/listings/normalize.ts` | What a listing *is*, once the strings are gone |
+| `lib/listings/trust.ts` | Whether a listing is complete enough to state plainly |
+| `lib/listings/duplicates.ts` | Whether two listings are the same apartment |
+
+### Three decisions the data made, not me
+
+**The duplicate tolerance is 3 square feet, absolute — not a percentage.**
+Measured across 43 same-building, same-bedroom pairs: 16 matched exactly, 10 differed by 1–3 sqft
+(1625→1626, 851→852 — agents rounding the same floor plan), the rest by materially more. Every
+rounding artifact was within 3 feet *regardless of unit size*, so a percentage is the wrong shape:
+1% of a 1,723 sqft flat is 17 feet, which is a different layout. Exact sizes are stated as fact;
+near matches are called *probable*, in the uncertain voice.
+
+**Hedging keys on named absences, not on a confidence score.**
+context.dev returns an extraction confidence per row, but the observed band is 0.77–0.93 — too
+narrow for a threshold to feel like anything, and hard to defend when someone asks what it means.
+"This one doesn't say when it was posted" is checkable in one click, and it is a fact a renter
+actually wants.
+
+Bayut writes bedroom counts as `1`, `1 Bed`, and `2 Beds`. That is formatting, not a defect —
+treating it as one takes the hedge rate from 16% to 52%, at which point the uncertain voice fires
+on half the table and means nothing. `TrustReason` is a closed union for that reason, and
+`trust.test.ts` fails if anyone widens it.
+
+**Sale listings are dropped.**
+Bayut's detail URLs don't distinguish rent from sale, and the crawl follows links into sale
+listings, which arrive with a purchase price in the annual-rent field. Unfiltered, the top result
+was a 700,000 "price gap" between two sale listings. The data separates cleanly — 119 listings
+between 50k and 150k, 43 between 150k and 500k, **nothing between 500k and 1M**, then the sales.
+The empty band is what makes a million-dirham floor a boundary rather than a guess.
+
+## The agent is code, not a dashboard
+
+`agent/second-opinion.json` holds the prompt, the tool schemas, and both voices.
+`npm run sync-agent` applies it, idempotently. The agent's behaviour is reviewable as a diff and
+reproducible from a clean clone.
+
+`npm run eval` talks to it without a microphone and asserts on what it says — that it still
+refuses to value a price, stays inside the five areas it knows, and switches to the uncertain
+voice. It found three real defects on its first run, including the agent quoting building names
+and prices out of its own system prompt instead of calling a tool.
+
+## Running it
+
+```bash
+npm install
+cp .env.example .env.local     # add CONTEXT_DEV_API_KEY and ELEVENLABS_API_KEY
+npm run sync-agent             # creates the agent, writes its id to .env.local
+npm run dev
+```
 
 | | |
 |---|---|
-| Listings | 313 |
-| Exact duplicate groups | 30, covering 67 listings — **21% of the table is a repeat** |
-| Probable duplicates (within 3 sqft) | 20 more groups |
-| Listings too thin to trust | 50 (16%) — 39 with no posting date, 15 with no agency |
-| Widest credible rent gap | Imperial Avenue, 1BR, 855 sqft: AED 110,000 / 130,000 / 145,000 |
-| Same flat, same agency, two prices | 2 groups |
+| `npm test` | The pure functions. No network — runs off a committed fixture. |
+| `npm run eval` | Agent conduct, via scripted conversations. |
+| `npm run check-hero` | Is there still a duplicate worth demoing? Run before recording. |
+| `npm run fixture` | Recapture the test fixture from live data. |
 
-The Imperial Avenue example is one apartment of one size in one building, listed three times by two
-agencies, 35,000 dirhams apart end to end. Nothing on the portal indicates those are the same flat.
+## What it will not do
 
----
+It states facts and says what you could check. It will not tell you which listing to call, will not
+say whether a price is good, and will not suggest why an agency did anything. You cannot prove
+intent from this data.
 
-## Setup
+The claim it does make is narrower and holds up: **the same apartment appears at different prices,
+and nothing on the site tells you.**
 
-Assumes a clean machine. Node 20+ and pnpm 9+ are the only prerequisites.
+## Not built
 
-```bash
-# 1. Install pnpm if you don't have it
-corepack enable && corepack prepare pnpm@latest --activate
-
-# 2. Clone and install
-git clone https://github.com/andreteow/dubai-voice-hackathon.git
-cd dubai-voice-hackathon
-pnpm install
-
-# 3. Environment
-cp .env.example .env.local
-```
-
-Fill in two keys in `.env.local`:
-
-| Var | Where to get it | Used by |
-|---|---|---|
-| `CONTEXT_DEV_API_KEY` | context.dev dashboard | The server route that reads the listings |
-| `ELEVENLABS_API_KEY` | ElevenLabs → Settings → API Keys | The agent provisioning script only |
-
-```bash
-# 4. Create the voice agent from the committed config.
-#    Idempotent — safe to re-run. Prints the agent id.
-pnpm sync-agent
-
-# 5. Paste that id into .env.local
-#    NEXT_PUBLIC_ELEVENLABS_AGENT_ID=agent_xxxxxxxxxxxx
-
-# 6. Run
-pnpm dev
-```
-
-Open http://localhost:3000. The table populates on load, then click the voice widget and ask
-"what's a one-bed in Marina going for?"
-
-**Wear headphones.** On laptop speakers the agent hears its own output and interrupts itself.
-
-### Other commands
-
-```bash
-pnpm test          # unit tests over the pure logic in lib/listings/
-pnpm check-hero    # prints every material duplicate group in the live data
-```
-
-`pnpm check-hero` runs the *same* `groupDuplicates` function the app uses, so if it reports a good
-example, the app will find it too. Run it before demoing — the collection re-syncs every 10 minutes
-and listings come and go.
-
----
-
-## Architecture
-
-The whole design exists to protect one property: **no network call happens while you're talking to
-it.**
-
-The listings are read once from context.dev through a server route when the page mounts, normalised
-into typed records, and held in React state. The ElevenLabs agent's tools are *client* tools — they
-execute synchronously inside the page against that in-memory array. A voice turn touches no server,
-so answers come back in roughly the time it takes to speak them. The same tool call that answers the
-question also sets the React state driving the screen, so the speech and the table move together
-rather than racing.
-
-```mermaid
-flowchart LR
-    CTX[(context.dev WebDB<br/>313 Bayut listings)]
-    API[/api/listings<br/>server only, holds the key/]
-    MEM[(listings in React state)]
-    UI[table + comparison panel]
-    EL[ElevenLabs agent<br/>two voices, one socket]
-
-    CTX -->|on mount + explicit re-read| API --> MEM --> UI
-    EL -.->|client tools, 0ms| MEM
-    EL -.->|sets highlight| UI
-```
-
-The dotted arrows never leave the browser. The solid ones run exactly twice: once on load, and again
-only if you ask it to re-read.
-
-Three consequences worth knowing before you read the code:
-
-- **The context.dev key never reaches the browser.** One server route proxies the query; the client
-  receives normalised listings and never a credential.
-- **Every judged decision is a pure function.** Normalisation, trust classification and duplicate
-  grouping live in `lib/listings/` with no I/O, and they're the only things with tests. The voice
-  agent and the UI are verified by talking to them.
-- **The agent config is committed, not clicked.** Its prompt, tool schemas and voice labels live in
-  `agent/second-opinion.json` and are applied by `pnpm sync-agent`, so a change in how the agent
-  behaves shows up as a diff rather than as an undocumented dashboard edit.
-
-### Layout
-
-```
-app/api/listings/route.ts   reads context.dev, normalises, returns { listings, readAt }
-app/page.tsx                the single screen
-components/                 ListingsTable, DuplicateComparison, VoiceWidget
-lib/listings/
-  normalize.ts              raw strings -> typed Listing        (tested)
-  trust.ts                  which listings are too thin to rely on (tested)
-  duplicates.ts             which listings are the same apartment  (tested)
-agent/second-opinion.json   the agent, in version control
-scripts/check-hero.ts       pre-demo verification
-```
-
-## How it decides things
-
-**Two listings are the same apartment** when they share a building, a bedroom count and a size. An
-exact size match is stated as fact; a match within 3 square feet is stated as *probable* and never as
-fact. The 3 sqft tolerance is absolute rather than a percentage, because the near-misses in the real
-data are rounding artifacts that don't scale with unit size — 1625 vs 1626, 851 vs 852 — while 3% of
-a 1,723 sqft unit is a different floor plan.
-
-**A listing is too thin to trust** when it names no agency, has no posting date, has a date that
-can't be parsed, or states no size. That's it — four named, checkable defects. It deliberately does
-*not* key on the extractor's confidence score: the observed range across this collection is 0.68–0.95
-and clusters tightly in the middle, too narrow for any threshold to mean much — and "I'm 78% sure"
-isn't something a listener can verify. A missing posting date is.
-
-**Bedroom formatting is never a defect.** The source writes the same thing as `1`, `1 Bed`, `2`,
-`2 Beds` and `Studio` — 111 of 313 rows use a worded form. Those are normalised to integers on load.
-Treating the variance as a data problem instead would push the hedge rate from 16% to 52% and make
-the uncertain voice meaningless through repetition.
+Change tracking over time (the substrate supports it), areas beyond the five covered, a second
+portal, and phone access. Scope and reasoning in
+[`docs/plans/2026-08-08-001-feat-second-opinion-plan.md`](docs/plans/2026-08-08-001-feat-second-opinion-plan.md).

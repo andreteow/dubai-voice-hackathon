@@ -1,24 +1,25 @@
 # Demo video — spoken script
 
-**Target: 2:00. Hard ceiling 2:15.** Record ~13:50, submit by 14:30.
+**Second Opinion.** Target 2:00, hard ceiling 2:15.
 
-Legend — **[SAY]** = you, out loud into the mic · **[AGENT]** = target reply, tune the system
-prompt until it lands close to this · **(screen)** = what's visible · *(italics)* = delivery note.
+> **Run `npm run check-hero` immediately before recording.** The listings re-sync every ten
+> minutes and the duplicate groups change. It prints exactly which buildings to name, flags which
+> ones are only *probable* matches, and tells you if there is no material gap right now.
+> **Never say a number it did not just print.**
+>
+> Also run `npm run eval` once — it checks the agent still refuses to value prices, stays inside
+> the areas it knows, and switches to the uncertain voice. Takes about a minute.
 
-> **Re-pull your hero numbers immediately before recording** — the collection re-syncs every
-> 10 minutes and prices move:
-> ```
-> curl -s -X POST https://api.context.dev/v1/webdbs/collections/col_07cb99b4beec4713bc3145e77c6bfd68/query \
->   -H "Authorization: Bearer $CONTEXT_DEV_API_KEY" -H "Content-Type: application/json" \
->   -d '{"limit":200}'
-> ```
-> Swap the figures below for whatever is true at 13:50. Never say a number you haven't just seen.
+Legend — **[SAY]** = you, out loud · **[AGENT]** = roughly what it should come back with ·
+**(screen)** = what's visible · *(italics)* = delivery note.
+
+Numbers below were true at 12:20. **Replace them with whatever `check-hero` prints.**
 
 ---
 
 ## 0:00 – 0:14 · Cold open
 
-*(No app on screen yet. Just you. Flat, unhurried — you're stating a fact, not selling.)*
+*(No app on screen. Just you. Flat and unhurried — you're stating a fact, not selling.)*
 
 **[SAY]**
 > "If you've rented in Dubai, you've had this happen. You call about a flat, and the agent tells
@@ -29,129 +30,116 @@ prompt until it lands close to this · **(screen)** = what's visible · *(italic
 
 *(beat)*
 
-> "I built something that reads the listings and just… tells you."
+> "So I built something that reads the listings and just… tells you."
 
-**(screen)** cut to the app. A quiet table of listings. Nothing flashy. Voice widget bottom-right.
+**(screen)** cut to the app. Quiet table. Voice button bottom-left.
 
 ---
 
-## 0:14 – 0:34 · It answers instantly
+## 0:14 – 0:32 · It answers instantly
 
-**[SAY]** *(conversational, to the agent, not to camera)*
+**[SAY]** *(to the agent, conversational — not to camera)*
 > "What's a two-bed in Marina going for?"
 
-**[AGENT]** *(crisp, certain)*
-> "One hundred and thirty-eight listings. Median is a hundred and ten thousand."
+**[AGENT]** — a count and a typical rent, then it volunteers a duplicate without being asked.
 
 **[SAY]**
 > "How current is that?"
 
-**[AGENT]**
-> "I last read these pages nine minutes ago."
+**[AGENT]** — names when it read the listings.
 
-**(screen)** the table filters as it speaks.
-
-*(Point out — briefly, don't labour it:)*
+*(Then to camera, briefly:)*
 
 **[SAY]**
 > "That came back in under a second, because it isn't searching the web while I'm talking.
-> It already read all of it."
+> It read everything once when the page loaded, and it's been answering from memory since."
 
 ---
 
-## 0:34 – 1:08 · The reveal — this is the whole demo
+## 0:32 – 1:06 · The reveal — this is the demo
 
 **[SAY]**
 > "Are any of these the same apartment?"
 
-**[AGENT]** *(matter-of-fact — do NOT let it sound triumphant)*
-> "Eleven of them are. Twenty-two listings, eleven actual flats.
->
-> The widest is West Avenue — one bedroom, seven hundred square feet, Dubai Marina.
-> One agent has it at seventy-six thousand. Another has it at a hundred thousand.
-> Same building, same size, same layout. Twenty-four thousand dirhams apart."
+**[AGENT]** — names the widest group and the gap.
 
-**(screen)** the two rows lift out of the table and sit side by side. Identical sqft highlighted.
+**(screen)** the comparison panel lifts in: shared building, bedrooms and size across the top,
+each price as its own card underneath, cheapest outlined.
 
-**[SAY]** *(this is your best line — land it, then stop talking)*
-> "Twenty-four thousand. That's three months' rent, on the same flat, depending on who picks
-> up the phone."
+**[SAY]** *(your best line — land it, then stop talking)*
+> "Seventy thousand dirhams. Same building, same number of bedrooms, same square footage —
+> and depending on who picks up the phone, that's what it costs you."
 
-*(pause — two full seconds of silence)*
+*(pause — two full seconds. Do not fill it.)*
 
 **[SAY]**
-> "Anything worse?"
+> "Anything worse than that?"
 
-**[AGENT]**
-> "Blakely Tower is listed twice by the same agency. Engel and Völkers, both posted on the
-> seventh of August, five thousand apart."
+**[AGENT]** — Forte 2, three agencies, three prices, one flat.
 
-**[SAY]** *(dry, no editorialising — let it sit)*
-> "Same agency. Same day."
+**[SAY]** *(dry, no editorialising)*
+> "Three agents. Three prices. One apartment."
 
----
-
-## 1:08 – 1:32 · It tells you when it isn't sure
-
-*(This beat wins the ElevenLabs prize. Set it up plainly.)*
+**(screen)** point at the "Check it yourself →" links.
 
 **[SAY]**
-> "How confident are you in all this?"
-
-**[AGENT]** *(starts crisp, then audibly softens and slows on the second half)*
-> "On most of it, high — building names and prices are stated plainly.
->
-> But DAMAC Heights I'd treat carefully. *(softer)* That page writes the bedroom count three
-> different ways, and I only pulled it at seventy-eight percent. I'd check that one yourself
-> before you rely on it."
-
-**(screen)** that row's confidence chip dims to amber exactly as the voice drops.
-
-**[SAY]** *(to camera, briefly — the one moment you explain rather than show)*
-> "That number isn't decoration. It's the extractor's own confidence score, per field.
-> When it's unsure, you hear it before you read it."
+> "Every one of those links goes back to the live listing. You don't have to believe me."
 
 ---
 
-## 1:32 – 1:50 · It notices quiet changes
+## 1:06 – 1:30 · It tells you when it isn't sure
+
+*(The prize beat. Set it up plainly.)*
 
 **[SAY]**
-> "Has anything changed since this morning?"
+> "Which of these are you not sure about?"
 
-**[AGENT]**
-> "Yes — [N] listings have moved since I started watching at eleven-forty.
-> One went up four thousand dirhams. Same photos, same unit, new number, no note on the page."
+**[AGENT]** — *the voice changes to a different speaker* and it names the specific gap: a listing
+with no posting date, or no agency named.
 
-**(screen)** a before/after row: old price struck through, new price beside it, with timestamps.
+**[SAY]** *(to camera — the one moment you explain rather than show)*
+> "That's a different voice, and it isn't decoration. Thirty of these listings don't say when they
+> were posted or who's advertising them. When it's working from one of those, you hear it before
+> you've finished reading the row.
+>
+> An old listing at a low price is exactly the thing you'd want to know about — and the site
+> doesn't tell you either."
 
-> **If the change feed is empty at record time:** cut this beat entirely rather than faking it.
-> The demo is strong without it. Alternatively, force a re-read on camera —
-> `POST /webdbs/collections/{id}/sync` returns in 0.5s — and say *"read them again now."*
+> **Optional, if `check-hero` flagged a PROBABLE group:** ask *"are those definitely the same
+> flat?"* — it should hedge and say the sizes differ by a couple of feet. Strong, but cut it if
+> you're near time.
 
 ---
 
-## 1:50 – 2:05 · The repo *(judges said they score this — do not skip it)*
+## 1:30 – 1:50 · The repo *(judges said they score this — do not skip)*
 
-**(screen)** cut to the editor. Two files, nothing more.
+**(screen)** cut to the editor. Three things, fast.
 
-**[SAY]** *(brisk — you're pointing, not explaining)*
-> "Two things in the code worth thirty seconds.
+**[SAY]**
+> "Three things in the code worth thirty seconds.
 >
-> One schema defines the data, and both the extraction contract and the TypeScript types come
-> out of it — so the database and the app can't disagree.
+> One — the duplicate tolerance is three square feet, not a percentage. I measured it: forty-three
+> pairs in the same building, and every rounding difference was within three feet no matter how big
+> the flat. A percentage would call a seventeen-foot difference the same apartment. There's a test
+> that fails if anyone changes it.
 >
-> And the confidence-to-voice mapping is a pure function with tests. The agent sounding unsure
-> is a tested behaviour, not a prompt I hoped would work."
+> Two — the crawler picked up for-sale listings with purchase prices in the rent field. Unfiltered,
+> the top result was a seven-hundred-thousand 'gap' between two sale listings. That's caught and
+> dropped.
+>
+> Three — this." *(show `npm run eval`)* "It talks to the agent without a microphone and checks it
+> still refuses to value prices and still switches voices. It caught the agent quoting numbers out
+> of its own prompt instead of the data."
 
-**(screen)** the test file, green.
+**(screen)** `npm test` — 39 green.
 
 ---
 
-## 2:05 – 2:15 · Close
+## 1:50 – 2:05 · Close
 
 **[SAY]** *(back to camera, level)*
-> "A hundred and thirty-eight listings, read live, no search while you're talking.
-> It finds the same flat listed twice, and it tells you when it isn't sure.
+> "A hundred and eighty listings, read live. It finds the same flat listed twice, and it tells you
+> when it isn't sure.
 >
 > Nothing here is a mock-up. Those are today's prices."
 
@@ -161,28 +149,28 @@ prompt until it lands close to this · **(screen)** = what's visible · *(italic
 
 ## Delivery notes
 
-- **Underplay everything.** The material is inherently damning; selling it makes it sound fake.
-  Read the 24,000 line like you're reading a train time.
-- **The two-second pause after "who picks up the phone" is the most valuable silence in the
-  video.** Do not fill it.
+- **Underplay it.** The material is damning on its own; selling it makes it sound fabricated.
+  Read the seventy-thousand line like a train time.
+- **The two-second pause is the most valuable silence in the video.** Do not fill it.
 - **Never say "AI-powered", "leveraging", or "seamlessly".** Say what it did.
-- **Say a real number in the first 20 seconds** and again in the last 10.
-- Record in **one take if you can**. Small stumbles read as live; polish reads as canned.
-- **Wear headphones.** Laptop mic + laptop speakers will cause the agent to interrupt itself.
+- **Wear headphones.** Laptop mic plus laptop speakers will make it interrupt itself.
+- Record in **one take** if you can. Small stumbles read as live; polish reads as canned.
+- Say a real number in the first 20 seconds and again in the last 10.
 
-## Failure protocol
+## If something breaks
 
-| If this breaks | Do this |
+| | |
 |---|---|
-| Agent mishears a question | Keep rolling, rephrase once. Recovering on camera looks confident. |
-| A query returns nothing | "Nothing in that community — try Marina." Then ask the working one. |
-| Change feed is empty | Cut the 1:32 beat. Don't fake it. |
-| Voice cuts out entirely | You still have the table on screen — narrate it and re-ask. |
-| Everything fails | Ship the 0:34–1:08 duplicate reveal alone. That single beat carries the submission. |
+| It mishears you | Keep rolling, rephrase once. Recovering on camera reads as confident. |
+| A query returns nothing | "Nothing there — try Marina." Then ask the working one. |
+| No material duplicate group | `check-hero` tells you *before* you record. Open on the uncertain-voice beat instead. |
+| Voice drops entirely | The table and comparison panel are still on screen — narrate them. |
+| Everything fails | Ship the 0:32–1:06 duplicate reveal alone. That beat carries the submission. |
 
-## What you're deliberately NOT claiming
+## What you are deliberately not claiming
 
-Do not say it detects fraud, that agents are lying, or that permits are being misused. You cannot
-prove intent from this data and a judge may know the market better than you. The honest, stronger
-claim is: **the same apartment appears at different prices, and nothing on the site tells you.**
-Stay there.
+Do not say it detects fraud, that agents are lying, or that anyone is baiting anyone. You cannot
+prove intent from this data and a judge may know this market better than you.
+
+The honest claim is stronger anyway: **the same apartment appears at different prices, and nothing
+on the site tells you.** Stay there.
