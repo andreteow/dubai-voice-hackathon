@@ -57,17 +57,22 @@ npm run sync-agent
 **Run it:**
 
 ```bash
-npm run dev          # http://localhost:3000
+npm run dev
 ```
 
-Open the page, allow microphone access, press **Talk to it**, and ask
+| | |
+|---|---|
+| `http://localhost:3000` | The marketing page. Leave an email to reveal the way in. |
+| `http://localhost:3000/app` | The demo itself. Reachable directly — the gate is soft on purpose. |
+
+On `/app`, allow microphone access, press **Talk to it**, and ask
 *"what's a two-bed in Marina going for?"*
 
 ### Other commands
 
 | | |
 |---|---|
-| `npm test` | The pure functions — 39 tests. No network; runs off a committed fixture. |
+| `npm test` | The pure functions — 46 tests. No network; runs off a committed fixture. |
 | `npm run eval` | Agent conduct, via scripted conversations. No microphone needed. |
 | `npm run check-hero` | Is there currently a duplicate worth demoing? Run before recording. |
 | `npm run fixture` | Recapture the test fixture from live data. |
@@ -77,7 +82,27 @@ Open the page, allow microphone access, press **Talk to it**, and ask
 
 ## Architecture
 
-**One property governs the whole design: no network call happens inside a voice turn.**
+### Two surfaces
+
+`/` is a marketing page and `/app` is the product, and they share almost nothing on purpose. The
+stylesheets are scoped (`.marketing`, `.product`) so neither theme can leak into the other, and the
+voice SDK — 145 kB of it — is imported only under `/app`, so the front door loads about 107 kB of
+JavaScript in total.
+
+Every number printed on the landing page is computed by `lib/listings/stats.ts` from the same live
+collection the demo answers from. There are no hand-written figures in the copy; if the read fails
+the strip is dropped rather than filled with dashes, because a landing page claiming *0 duplicates
+found* is the product reporting its own absence.
+
+The email gate is deliberately soft. An address is asked for once and remembered in
+`localStorage`, but `/app` does not redirect anyone away — a judge who types the URL gets a working
+demo, because a form standing between someone and the product is worse than an uncollected address.
+Addresses go to a Postgres function whose table has RLS on and no policies, so the key the server
+holds can add you to the list and cannot read anyone off it.
+
+### The one property everything else protects
+
+**No network call happens inside a voice turn.**
 
 The listings are read **once**, when the page mounts, through a server route that holds the API
 key. They are normalised into typed records and kept in React state for the session. After that
@@ -115,6 +140,7 @@ Three pure functions carry every judgement the product makes, and they are where
 | `lib/listings/normalize.ts` | What a listing *is*, once the strings are gone |
 | `lib/listings/trust.ts` | Whether a listing is complete enough to state plainly |
 | `lib/listings/duplicates.ts` | Whether two listings are the same apartment |
+| `lib/listings/stats.ts` | Which figures the marketing page is entitled to claim |
 
 ```
 raw row (every field a string)

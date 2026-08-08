@@ -32,7 +32,10 @@ Numbers below were true at 12:20. **Replace them with whatever `check-hero` prin
 
 > "So I built something that reads the listings and just… tells you."
 
-**(screen)** cut to the app. Quiet table. Voice button bottom-left.
+**(screen)** cut to the app at `localhost:3000/app`. Quiet table. Voice button bottom-left.
+
+*(Have `/app` already open in its own tab before you start. The landing page at `/` is worth two
+seconds at the very end if there's time, not here — it costs you the opening beat.)*
 
 ---
 
@@ -131,7 +134,7 @@ with no posting date, or no agency named.
 > still refuses to value prices and still switches voices. It caught the agent quoting numbers out
 > of its own prompt instead of the data."
 
-**(screen)** `npm test` — 39 green.
+**(screen)** `npm test` — 46 green.
 
 ---
 

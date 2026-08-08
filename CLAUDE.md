@@ -6,7 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Built and shipped.** All six implementation units (U1–U6) are complete: listings on screen, voice
 answering from memory, the uncertain voice, duplicate detection with a comparison panel, agent
-conduct evals, and demo verification. 39 tests green, production build passes.
+conduct evals, and demo verification. A marketing landing page with email capture was added on top
+of that. 46 tests green, production build passes.
 
 `docs/plans/2026-08-08-001-feat-second-opinion-plan.md` records the requirements (R1–R21), key
 technical decisions (KTD1–KTD7), and units — read it for *why* something is the way it is. It is a
@@ -23,16 +24,38 @@ judged on **codebase health and tool steering**, not just the demo.
 
 ## Stack and commands
 
-Next.js App Router + TypeScript + **npm**. Vitest for the pure functions. No database, no auth.
+Next.js App Router + TypeScript + **npm**. Vitest for the pure functions. No auth. The only
+database is a single Supabase table holding the early-access list; nothing the product does depends
+on it.
 
 ```
-npm run dev          # local dev server on :3000
-npm test             # 39 pure-function tests, no network (committed fixture)
+npm run dev          # :3000 is the landing page, :3000/app is the demo
+npm test             # 46 pure-function tests, no network (committed fixture)
 npm run eval         # agent conduct via scripted conversations — no microphone needed
 npm run sync-agent   # idempotent ElevenLabs agent provisioning from committed JSON
 npm run check-hero   # is a demo-worthy duplicate group live right now? run before recording
 npm run fixture      # recapture the test fixture from live data
 ```
+
+## Two surfaces
+
+`/` is the marketing page, `/app` is the product. They share a root layout and nothing else:
+stylesheets are scoped to `.marketing` and `.product` so neither theme leaks, `base.css` keys the
+page background off `html:has(.product)`, and the 145 kB ElevenLabs SDK is imported only under
+`/app`. Keep it that way — the front door's whole job is to load instantly.
+
+- **Every figure on the landing page is computed, never typed.** `lib/listings/stats.ts` reads the
+  same live collection the demo answers from. If the read fails the proof strip is dropped rather
+  than filled with dashes. Do not hardcode a number into that copy.
+- **The email gate is soft and must stay soft.** `/app` does not redirect. The address is asked for
+  once and remembered in `localStorage`. A form between a judge and a working demo costs more than
+  an uncollected address.
+- **The waitlist cannot leak.** `public.second_opinion_waitlist` has RLS on and *no policies*; the
+  only way in is the `security definer` function `join_second_opinion_waitlist`, which returns a
+  position and nothing else. The key in `SUPABASE_PUBLISHABLE_KEY` can add a row and cannot read
+  one. If you ever need to read the list, do it from the Supabase dashboard, not by adding a policy.
+- **A broken waitlist never breaks the page.** Missing env or a Supabase outage still returns 200
+  with `stored: false`, and the visitor still gets in.
 
 ## Architecture: the one property everything protects
 
@@ -127,7 +150,10 @@ figures in it drift as the collection re-syncs.
 
 `.env.local` (already gitignored) holds the keys; `.env.example` documents them. The app needs
 `CONTEXT_DEV_API_KEY` and `ELEVENLABS_API_KEY`; `ELEVENLABS_AGENT_ID` is written by
-`npm run sync-agent` on first run. Also present: `ELEVENLABS_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`,
+`npm run sync-agent` on first run. `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` point at the
+early-access table (Supabase project `a47-predict`, `kyszzgoorhocalezxtmp`) and are optional —
+without them the sign-up form still lets people through, it just does not record them. Also present:
+`ELEVENLABS_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`,
 `HEYGEN_API_KEY`, `TAVILY_API_KEY`, `APIFY_TOKEN`, and BytePlus/ModelArk keys.
 
 MCP servers are configured for ElevenLabs, HeyGen, Supabase, Vapi, Context7 and others — prefer

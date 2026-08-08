@@ -1,0 +1,608 @@
+/*
+ * The marketing page at /.
+ *
+ * Light, typographic, and deliberately unlike the product it sells: the demo is
+ * a dense dark instrument, so the page in front of it is paper and space. Both
+ * are scoped — `.marketing` here, `.product` in product.css — so neither can
+ * leak into the other.
+ *
+ * Motion is CSS-only. Sections rise once on load, and upgrade to scroll-driven
+ * where `animation-timeline` is supported. Nothing depends on JavaScript to
+ * become visible, which is why there is no IntersectionObserver anywhere.
+ */
+
+.marketing {
+  --paper: #fbfaf8;
+  --paper-2: #f4f0e9;
+  --ink: #16130f;
+  --ink-2: #3f392f;
+  --muted: #736b60;
+  --rule: #e4ddd2;
+  --accent: #0e4f48;
+  /* One hot figure per page. It belongs to the price gap and nothing else. */
+  --hot: #ad3b16;
+
+  min-height: 100dvh;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.marketing ::selection {
+  background: #d9e6e2;
+}
+
+.m-wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 28px;
+}
+
+.m-display {
+  font-family: var(--font-display), Iowan Old Style, Georgia, serif;
+  font-weight: 400;
+  font-optical-sizing: auto;
+}
+
+/* ---------------------------------------------------------------- nav ---- */
+
+.m-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 26px 0;
+  flex-wrap: wrap;
+}
+
+.m-word {
+  font-family: var(--font-display), Iowan Old Style, Georgia, serif;
+  font-size: 21px;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.m-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.m-badge {
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  border: 1px solid var(--rule);
+  background: var(--paper-2);
+  border-radius: 999px;
+  padding: 5px 13px;
+  white-space: nowrap;
+}
+
+.m-navlink {
+  font-size: 15px;
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid #b8cfc9;
+  padding-bottom: 1px;
+  transition: border-color 0.18s ease;
+}
+
+.m-navlink:hover {
+  border-bottom-color: var(--accent);
+}
+
+/* --------------------------------------------------------------- hero ---- */
+
+.m-hero {
+  padding: 58px 0 0;
+}
+
+.m-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 0 0 26px;
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.m-eyebrow::before {
+  content: "";
+  width: 28px;
+  height: 1px;
+  background: #c9c0b2;
+  flex: none;
+}
+
+.m-h1 {
+  margin: 0;
+  font-size: clamp(2.6rem, 6.4vw, 4.9rem);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  max-width: 16ch;
+  text-wrap: balance;
+}
+
+.m-lede {
+  margin: 28px 0 0;
+  max-width: 48ch;
+  font-size: clamp(1.04rem, 1.5vw, 1.2rem);
+  line-height: 1.55;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+/* ------------------------------------------------------------ the shot --- */
+
+figure.m-shot {
+  margin: 74px 0 0;
+  border-radius: 14px;
+  border: 1px solid var(--rule);
+  overflow: hidden;
+  background: #0f1115;
+  box-shadow:
+    0 1px 2px rgba(22, 19, 15, 0.06),
+    0 30px 70px -30px rgba(22, 19, 15, 0.45);
+}
+
+.m-shot-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 15px;
+  background: #171a21;
+  border-bottom: 1px solid #262b35;
+}
+
+.m-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #343a46;
+  flex: none;
+}
+
+.m-shot-url {
+  margin-left: 12px;
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+  color: #6d7686;
+}
+
+.m-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.m-caption {
+  margin: 15px 0 0;
+  font-size: 13.5px;
+  color: var(--muted);
+  max-width: 62ch;
+}
+
+/* -------------------------------------------------------------- proof ---- */
+
+.m-proof {
+  margin-top: 108px;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding: 46px 0 48px;
+}
+
+.m-figs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.m-fig {
+  padding: 0 38px;
+  border-left: 1px solid var(--rule);
+}
+
+.m-fig:first-child {
+  padding-left: 0;
+  border-left: none;
+}
+
+.m-fig-n {
+  display: block;
+  font-size: clamp(2.1rem, 4.2vw, 3.3rem);
+  line-height: 1;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+}
+
+.m-fig-n.hot {
+  color: var(--hot);
+}
+
+.m-fig-unit {
+  font-size: 0.5em;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  margin-right: 0.25em;
+}
+
+.m-fig-l {
+  margin: 14px 0 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--muted);
+  max-width: 28ch;
+}
+
+.m-proof-foot {
+  margin: 34px 0 0;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+/* ---------------------------------------------------------------- how ---- */
+
+.m-how {
+  padding: 100px 0 96px;
+}
+
+.m-h2 {
+  margin: 0;
+  font-size: clamp(1.9rem, 3.6vw, 2.7rem);
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  max-width: 20ch;
+  text-wrap: balance;
+}
+
+/* An ordered list because the steps are ordered — but the markers are drawn by
+   `.m-step-n`, so the native ones have to go, along with the padding that
+   would otherwise push the grid out of line with the heading above it. */
+.m-steps {
+  margin: 58px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 46px;
+}
+
+.m-step-n {
+  display: block;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.m-step h3 {
+  margin: 20px 0 9px;
+  font-size: 18.5px;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+}
+
+.m-step p {
+  margin: 0;
+  font-size: 15.5px;
+  line-height: 1.62;
+  color: var(--ink-2);
+}
+
+.m-said {
+  font-family: var(--font-display), Iowan Old Style, Georgia, serif;
+  font-style: italic;
+  color: var(--accent);
+}
+
+/* ---------------------------------------------------------------- cta ---- */
+
+.m-cta {
+  border-top: 1px solid var(--rule);
+  padding: 84px 0 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.m-cta .m-h2 {
+  max-width: 22ch;
+}
+
+.m-cta-sub {
+  margin: 20px 0 0;
+  max-width: 44ch;
+  color: var(--ink-2);
+}
+
+/* --------------------------------------------------------------- foot ---- */
+
+.m-foot {
+  border-top: 1px solid var(--rule);
+  padding: 28px 0 64px;
+  display: flex;
+  justify-content: space-between;
+  gap: 14px 30px;
+  flex-wrap: wrap;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.m-foot a {
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 1px solid var(--rule);
+}
+
+.m-foot a:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.m-foot p {
+  margin: 0;
+}
+
+/* --------------------------------------------------------------- form ---- */
+
+.ea {
+  margin-top: 36px;
+  max-width: 500px;
+  width: 100%;
+}
+
+.m-cta .ea {
+  margin-inline: auto;
+}
+
+.ea-form {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ea-input {
+  flex: 1 1 250px;
+  min-width: 0;
+  font: inherit;
+  font-size: 15.5px;
+  padding: 13px 16px;
+  border: 1px solid #d8d0c4;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ea-input::placeholder {
+  color: #a49b8e;
+}
+
+.ea-input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(14, 79, 72, 0.13);
+}
+
+.ea-btn {
+  font: inherit;
+  font-size: 15.5px;
+  font-weight: 500;
+  padding: 13px 24px;
+  border-radius: 10px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.ea-btn:hover:not(:disabled) {
+  background: #000;
+}
+
+.ea-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.ea-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.ea-note {
+  margin: 13px 0 0;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.ea-error {
+  margin: 11px 0 0;
+  font-size: 14px;
+  color: #a13418;
+}
+
+.ea-joined {
+  border: 1px solid var(--rule);
+  background: var(--paper-2);
+  border-radius: 13px;
+  padding: 24px 26px;
+  text-align: left;
+  animation: ea-settle 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+.ea-joined h3 {
+  margin: 0;
+  font-family: var(--font-display), Iowan Old Style, Georgia, serif;
+  font-weight: 400;
+  font-size: 25px;
+  letter-spacing: -0.02em;
+}
+
+.ea-joined p {
+  margin: 9px 0 0;
+  font-size: 15px;
+  color: var(--ink-2);
+}
+
+.ea-pos {
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.ea-enter {
+  display: inline-block;
+  margin-top: 20px;
+  font-size: 15.5px;
+  font-weight: 500;
+  padding: 12px 22px;
+  border-radius: 10px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.ea-enter:hover {
+  background: #000;
+}
+
+@keyframes ea-settle {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* ------------------------------------------------------------- motion ---- */
+
+.rise {
+  animation: rise 0.85s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+.rise-1 { animation-delay: 0.06s; }
+.rise-2 { animation-delay: 0.14s; }
+.rise-3 { animation-delay: 0.22s; }
+.rise-4 { animation-delay: 0.32s; }
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+/*
+ * Where scroll-driven animation exists, sections below the fold rise as they
+ * are reached instead of all at once on load. The load-time animation above is
+ * the fallback, so nothing is ever stuck invisible.
+ */
+@supports (animation-timeline: view()) {
+  .rise-onview {
+    animation: rise 0.85s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+    animation-timeline: view();
+    animation-range: entry 5% cover 26%;
+    animation-delay: 0s;
+  }
+}
+
+/* --------------------------------------------------------- responsive ---- */
+
+@media (max-width: 860px) {
+  .m-figs {
+    grid-template-columns: 1fr 1fr;
+    gap: 34px 0;
+  }
+
+  .m-fig:nth-child(3) {
+    padding-left: 0;
+    border-left: none;
+  }
+
+  .m-steps {
+    grid-template-columns: 1fr;
+    gap: 34px;
+  }
+}
+
+@media (max-width: 640px) {
+  .marketing {
+    font-size: 16px;
+  }
+
+  .m-wrap {
+    padding: 0 20px;
+  }
+
+  /* Three stacked rows of chrome before the headline is too much on a phone.
+     The wordmark keeps its own line; the badge and the demo link share the
+     next one. */
+  .m-nav {
+    padding: 20px 0 0;
+    row-gap: 13px;
+  }
+
+  .m-nav-right {
+    width: 100%;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .m-badge {
+    font-size: 11px;
+    padding: 4px 10px;
+  }
+
+  .m-hero {
+    padding-top: 34px;
+  }
+
+  .m-h1 {
+    font-size: 2.3rem;
+    max-width: none;
+  }
+
+  /* The input has already wrapped onto its own line; a content-width button
+     underneath it reads as an afterthought. */
+  .ea-btn {
+    flex: 1 1 100%;
+  }
+
+  .m-figs {
+    grid-template-columns: 1fr;
+  }
+
+  .m-fig {
+    padding: 0;
+    border-left: none;
+  }
+
+  .m-fig-l {
+    max-width: none;
+  }
+
+  .m-proof {
+    margin-top: 76px;
+  }
+
+  .m-how {
+    padding: 72px 0;
+  }
+
+  .m-shot {
+    margin-top: 46px;
+  }
+}
