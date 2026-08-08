@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { ListingsTable } from "@/components/ListingsTable";
+import { VoiceWidget } from "@/components/VoiceWidget";
 import type { ListingsPayload } from "@/lib/listings/types";
 
 /**
@@ -15,6 +16,7 @@ export default function Home() {
   const [payload, setPayload] = useState<ListingsPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [highlightIds, setHighlightIds] = useState<string[]>([]);
 
   const read = useCallback(async () => {
     setLoading(true);
@@ -83,7 +85,9 @@ export default function Home() {
         </button>
       </div>
 
-      <ListingsTable listings={listings} />
+      <ListingsTable listings={listings} highlightIds={highlightIds} />
+
+      <VoiceWidget listings={listings} onHighlight={setHighlightIds} />
     </main>
   );
 }
