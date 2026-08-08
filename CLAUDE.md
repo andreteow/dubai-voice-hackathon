@@ -4,14 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-**No source code exists yet.** The repo holds documentation only: ideation, API probe results, and
-an implementation-ready plan. The next commit is expected to scaffold the app.
+**Built and shipped.** All six implementation units (U1–U6) are complete: listings on screen, voice
+answering from memory, the uncertain voice, duplicate detection with a comparison panel, agent
+conduct evals, and demo verification. 39 tests green, production build passes.
 
-The authoritative spec is **`docs/plans/2026-08-08-001-feat-second-opinion-plan.md`** — read it
-before writing any code. It carries numbered requirements (R1–R21), key technical decisions
-(KTD1–KTD7), and six implementation units (U1–U6) with their file lists, test scenarios, and a
-sequencing table with an explicit cut line. Do not re-derive scope from the ideation docs; they
-record superseded thinking.
+`docs/plans/2026-08-08-001-feat-second-opinion-plan.md` records the requirements (R1–R21), key
+technical decisions (KTD1–KTD7), and units — read it for *why* something is the way it is. It is a
+pre-build artifact, so where it and the code disagree, **the code is authoritative**. `README.md`
+and `TECH-SPEC.md` at the root describe what actually shipped.
 
 ## The product in one paragraph
 
@@ -21,17 +21,17 @@ prices, and switches to an audibly different, less certain voice — naming the 
 listing's data is too thin to trust. It is a hackathon submission (Dubai AI Hub Builder Lab #3),
 judged on **codebase health and tool steering**, not just the demo.
 
-## Planned stack and commands
+## Stack and commands
 
-Next.js App Router + TypeScript + pnpm, deployed to Vercel. Nothing is installed yet, so these are
-the commands the plan assumes rather than verified ones — replace this section with real commands
-once the scaffold lands.
+Next.js App Router + TypeScript + **npm**. Vitest for the pure functions. No database, no auth.
 
 ```
-pnpm dev      # local dev server
-pnpm test     # pure-function tests in lib/listings/ (Definition of Done requires green)
-pnpm tsx agent/sync-agent.ts      # idempotent ElevenLabs agent provisioning
-pnpm tsx scripts/check-hero.ts    # verify a demo-worthy duplicate group exists — run before recording
+npm run dev          # local dev server on :3000
+npm test             # 39 pure-function tests, no network (committed fixture)
+npm run eval         # agent conduct via scripted conversations — no microphone needed
+npm run sync-agent   # idempotent ElevenLabs agent provisioning from committed JSON
+npm run check-hero   # is a demo-worthy duplicate group live right now? run before recording
+npm run fixture      # recapture the test fixture from live data
 ```
 
 ## Architecture: the one property everything protects
@@ -44,7 +44,7 @@ React state that drives the screen — so speech and UI move together with zero 
 ```
 context.dev WebDB ──(server-only, on mount + explicit re-read)──> /api/listings ──> React state
                                                                                       │
-ElevenLabs agent ──(client tools: searchListings, findDuplicates, explainTrust)───────┘
+ElevenLabs agent ──(client tools: searchListings, findDuplicates)─────────────────────┘
                                                                                       │
                                                                           listings table + comparison panel
 ```
@@ -54,7 +54,8 @@ Consequences that constrain how you write code here:
 - The context.dev API key **never reaches the browser** — one server route proxies it (KTD6).
 - All judged logic lives in **pure functions under `lib/listings/`** (`normalize`, `trust`,
   `duplicates`). No I/O below the route layer. These are the only things with tests (KTD5) — the
-  voice agent and UI are verified by speaking to them.
+  voice agent and UI have no unit tests; agent *conduct* is covered by `npm run eval`, and
+  delivery is verified by speaking to it.
 - **Agent config is committed, not clicked.** Prompt, tool schemas, and voice labels live in
   `agent/second-opinion.json`, applied by a re-runnable script, so behaviour is reviewable as a
   diff (KTD4). This is the primary evidence of deliberate tool steering the rubric scores.
@@ -65,11 +66,16 @@ Consequences that constrain how you write code here:
   data: 1–3 sqft gaps are rounding artifacts regardless of unit size, but 3% of a 1,723 sqft unit is
   a different layout. Exact size match → stated as fact; within 3 sqft → stated as *probable*.
 - **Hedging keys on named data defects, not on the extraction confidence score.** The observed
-  confidence band (0.77–0.93) is too narrow to threshold defensibly. Untrust reasons are a closed
-  union: `no_agency`, `no_date`, `unreadable_date`, `no_size` (R8).
+  confidence band (0.71–0.95) clusters too tightly to threshold defensibly, and a threshold is
+  unverifiable by a listener. Untrust reasons are a closed union: `no_agency`, `no_date`,
+  `unreadable_date`, `no_size` (R8). Current hedge rate: 17%.
 - **Bedroom formatting variance is never a defect** (R11). `"2 Beds"` vs `"2"` is normalised, not
-  hedged on — treating it as a defect pushes the hedge rate from 16% to 52%. There is a test whose
+  hedged on — treating it as a defect pushes the hedge rate from 17% to 52%. There is a test whose
   job is to stop a future contributor re-adding it.
+- **Sale listings are dropped before anything else runs.** The crawl follows links into for-sale
+  pages, which arrive with a purchase price in the annual-rent field. Anything at or above AED 1M/yr
+  is a sale price — see `looksLikeSalePrice`. Unfiltered, the top "price gap" was 700,000 between
+  two sale listings.
 - **A missing size normalises to `null`, not `0`** — `0` would corrupt duplicate matching.
 - **The agent says what to check, never what to do.** It does not recommend a listing, judge whether
   a price is good, or attribute motive to any agency (R13). The word "bait" is out of scope.
@@ -103,8 +109,9 @@ Full results in `docs/ideation/context-dev-probe-results.md`. The load-bearing o
 - Overrides are disabled by default and must be enabled per-field in the agent's Security tab;
   sending an override for a disabled field **throws**. Wire key is `conversation_config_override`,
   JS SDK key is `overrides`. Prefer dynamic variables.
-- `simulate_conversation` is deprecated — the eval story is the Tests API, and it is explicitly
-  deferred as out of scope for the deadline.
+- The MCP `simulate_conversation` tool returns 500, but the underlying REST endpoint
+  `POST /v1/convai/agents/{id}/simulate-conversation` works — that is what `npm run eval` drives.
+  Client tools do not execute there (no browser), so evals assert *conduct*, not numeric accuracy.
 
 ## Docs convention
 
@@ -112,16 +119,15 @@ Full results in `docs/ideation/context-dev-probe-results.md`. The load-bearing o
 exploratory notes, implementation plans, and post-hoc writeups into the matching directory rather
 than the repo root.
 
-**`docs/ideation/demo-script.md` currently contradicts the plan** and is scheduled for rewrite in
-U6. Its hedge beat cites bedroom-count formatting (excluded by R11), it claims per-field confidence
-drives the voice (superseded — defects do), and it includes a change-feed beat that was dropped.
-Treat the plan as authority; do not build toward the demo script until U6 corrects it.
+`docs/ideation/demo-script.md` was corrected in U6 and now matches the build. It carries the spoken
+demo script plus a failure protocol. Re-run `npm run check-hero` before recording — the listing
+figures in it drift as the collection re-syncs.
 
 ## Credentials
 
-`.env.local` (already gitignored) holds the keys; `.env.example` documents them. This build needs
-only `CONTEXT_DEV_API_KEY` and the ElevenLabs agent id — the app must run from a clean clone with
-just those. Also present: `ELEVENLABS_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`,
+`.env.local` (already gitignored) holds the keys; `.env.example` documents them. The app needs
+`CONTEXT_DEV_API_KEY` and `ELEVENLABS_API_KEY`; `ELEVENLABS_AGENT_ID` is written by
+`npm run sync-agent` on first run. Also present: `ELEVENLABS_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`,
 `HEYGEN_API_KEY`, `TAVILY_API_KEY`, `APIFY_TOKEN`, and BytePlus/ModelArk keys.
 
 MCP servers are configured for ElevenLabs, HeyGen, Supabase, Vapi, Context7 and others — prefer
